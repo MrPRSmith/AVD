@@ -3,7 +3,7 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "WvdArtifactsLocation": {
+        "AvdArtifactsLocation": {
             "type": "string",
             "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip",
             "metadata": {
@@ -351,7 +351,7 @@
                 "typeHandlerVersion": "2.73",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                    "modulesUrl": "[parameters('WvdArtifactsLocation')]",
+                    "modulesUrl": "[parameters('AvdArtifactsLocation')]",
                     "configurationFunction": "Configuration.ps1\\AddSessionHost",
                     "properties": {
                         "hostPoolName": "[parameters('HostPoolName')]",
