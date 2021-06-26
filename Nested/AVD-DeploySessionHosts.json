@@ -1,0 +1,456 @@
+{
+    // This template is expected to be called as a linked template. The parent will contain all the logic to correctly build all the resource names etc.
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "WvdArtifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip",
+            "metadata": {
+                "description": "URL to the location of the required AVD artifacts"
+            }
+        },
+        "HostPoolName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the AVD Host Pool to which the session hosts will join"
+            }
+        },
+        "HostPoolRegistrationToken": {
+            "type": "string",
+            "metadata": {
+                "description": "The registration token for the session hosts to associate with the specified Host Pool"
+            }
+        },
+        "AvailabilitySetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the Availability Set to create"
+            }
+        },
+        "AvailabilitySetTags": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags that will apply to the resource"
+            }
+        },
+        "AvailabilitySetLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Location of the Availability Set"
+            }
+        },
+        "SessionHostsNumberToDeploy": {
+            "type": "int",
+            "metadata": {
+                "description": "The number of session Hosts to deploy"
+            }
+        },
+        "SessionHostNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The computer name prefix for the session hosts"
+            }
+        },
+        "SessionHostNameInitialNumber": {
+            "type": "int",
+            "metadata": {
+                "description": "The initial instance number for the session host. e.g. Setting 4 will mean the session host numbering starts from 4 resulting in VMNAME-4 onwards"
+            }
+        },
+        "SessionHostNumberPadding": {
+            "type": "int",
+            "metadata": {
+                "description": "Padding for the instance number. e.g. setting 3 will use 004 instead of 4 or 04 resulting in VMNAME-004"
+            }
+        },
+        "SessionHostLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure region for the session host deployment"
+            }
+        },
+        "SessionHostTags": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags that will apply to the resource"
+            }
+        },
+        "SessionHostVmSize": {
+            "type": "string",
+            "metadata": {
+                "description": "Size of the Azure VM that will be the AVD Session Host"
+            }
+        },
+        "SessionHostLocalAdminUsername": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Local administrator username for each Session Host"
+            }
+        },
+        "SessionHostLocalAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Local administrator password for each of the Session Hosts"
+            }
+        },
+        "SessionHostOSDiskType": {
+            "type": "string",
+            "metadata": {
+                "description": "Disk Type for each Session Hosts OS"
+            }
+        },
+        "SessionHostOSDiskSizeGB": {
+            "type": "int",
+            "metadata": {
+                "description": "Size of each Session Hosts OS disk"
+            }
+        },
+        "SessionHostSourceImageID": {
+            "type": "string",
+            "metadata": {
+                "description": "Session host source image ID. This can be a Shared Image Gallery ID or Managed Image ID"
+            }
+        },
+        "SessionHostEnableIaaSAntimalware": {
+            "type": "bool",
+            "metadata": {
+                "description": "Enable IaaSAntimalware extension on each of the Session Hosts"
+            }
+        },
+        "SessionHostEnableBitLocker": {
+            "type": "bool",
+            "metadata": {
+                "description": "Enable Bitlocker on each of the Session Hosts"
+            }
+        },
+        "BitLockerKeyVaultURL": {
+            "type": "string",
+            "metadata": {
+                "description": "URL of the KeyVault to store BitLocker recovery data"
+            }
+        },
+        "BitlockerKeyVaultResourceId": {
+            "type": "string",
+            "metadata": {
+                "description": "ID of the KeyVault to store BitLocker recovery data"
+            }
+        },
+        "DomJoinDomainToJoin": {
+            "type": "string",
+            "metadata": {
+                "description": "DNS domain name of the Active Directory domain to join"
+            }
+        },
+        "DomJoinOUPath": {
+            "type": "string",
+            "metadata": {
+                "description": "The OU path to of where to join domain to"
+            }
+        },
+        "DomJoinUsername": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Domain Join user name"
+            }
+        },
+        "DomJoinPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Domain join password"
+            }
+        },
+        "NicTags": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Tags that will apply to the resource"
+            }
+        },
+        "NicSubnetID": {
+            "type": "string",
+            "metadata": {
+                "description": "ID of the subnet for the NICs"
+            }
+        },
+        "NicEnableAcceleratedNetworking": {
+            "type": "bool",
+            "metadata": {
+                "description": "Enable or disable NIC acceleration"
+            }
+        },
+        "EnableMonitoring": {
+            "type": "bool",
+            "metadata": {
+                "description": "Enable monitoring on the resources that are to be deployed"
+            }
+        },
+        "LawWorkspaceId": {
+            "type": "securestring",
+            "metadata": {
+                "description": "ID of the Log Analytics Workspace"
+            }
+        },
+        "LawPrimaryKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Primary Key for the Log Analytics Workspace"
+            }
+        }
+    },
+    "functions": [],
+    "variables": {},
+    "resources": [
+        
+        // Create Availability Sets
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "apiVersion": "2019-07-01",
+            "name": "[parameters('AvailabilitySetName')]",
+            "tags": "[parameters('AvailabilitySetTags')]",
+            "location": "[parameters('AvailabilitySetLocation')]",
+            "condition": "[greater(parameters('SessionHostsNumberToDeploy'),0)]",
+            "properties": {
+                "platformFaultDomainCount": 2,
+                "platformUpdateDomainCount": 5
+            },
+            "sku": {
+                "name": "Aligned"
+            }
+        },
+
+        // Create Network Interfaces for VMs
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-05-01",                    
+            "name": "[concat('NIC-',parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
+            "tags": "[parameters('NicTags')]",
+            "copy": {
+                "name": "Session-Host-NIC-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "location":"[parameters('SessionHostLocation')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[parameters('NicSubnetID')]"
+                            }
+                        }
+                    }
+                ],
+                "enableAcceleratedNetworking": "[parameters('NicEnableAcceleratedNetworking')]",
+                "networkSecurityGroup": "[json('null')]"
+            }
+        },
+
+        // Create VMs (Session Hosts)
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2019-07-01",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),3,'0'))]",
+            "tags": "[parameters('SessionHostTags')]",
+            "location": "[parameters('SessionHostLocation')]",
+            "copy": {
+                "name": "Session-Host-VM-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', concat('NIC-',parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')))]",
+                "[resourceId('Microsoft.Compute/availabilitySets', parameters('AvailabilitySetName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('SessionHostVmSize')]"
+                },
+                "availabilitySet": {
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]"
+                },
+                "osProfile": {
+                    "computerName": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
+                    "adminUsername": "[parameters('SessionHostLocalAdminUsername')]",
+                    "adminPassword": "[parameters('SessionHostLocalAdminPassword')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "FromImage",
+                        "managedDisk": {
+                            "storageAccountType": "[parameters('SessionHostOSDiskType')]"
+                        },
+                        "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),3,'0'),'-OS')]",
+                        "diskSizeGB": "[parameters('SessionHostOSDiskSizeGB')]"                        
+                    },
+                    "imageReference": {
+                        "id": "[parameters('SessionHostSourceImageID')]"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {                                  
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('NIC-',parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": false
+                    }
+                },
+                "licenseType": "Windows_Client"
+            }
+        },
+
+        // Domain Join VMs
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2019-07-01",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/DomainJoin')]",
+            "location": "[parameters('SessionHostLocation')]",
+            "dependsOn": ["Session-Host-VM-Loop"],
+            "copy": {
+                "name": "Session-Host-DomainJoin-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "JsonADDomainExtension",
+                "typeHandlerVersion": "1.3",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "name": "[parameters('DomJoinDomainToJoin')]",
+                    "ouPath": "[parameters('DomJoinOUPath')]",
+                    "user": "[parameters('DomJoinUsername')]",
+                    "restart": "true",
+                    "options": "3"
+                },
+                "protectedSettings": {
+                    "password": "[parameters('DomJoinPassword')]"
+                }
+            }                
+        },
+
+        // Register VMs (Sesion Hosts) to the AVD Service
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2019-07-01",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/SessionHostRegistration')]",
+            "location": "[parameters('SessionHostLocation')]",
+            "dependsOn": ["Session-Host-DomainJoin-Loop"],
+            "copy": {
+                "name": "Session-Host-Registration-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "properties": {
+                "publisher": "Microsoft.Powershell",
+                "type": "DSC",
+                "typeHandlerVersion": "2.73",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "modulesUrl": "[parameters('WvdArtifactsLocation')]",
+                    "configurationFunction": "Configuration.ps1\\AddSessionHost",
+                    "properties": {
+                        "hostPoolName": "[parameters('HostPoolName')]",
+                        "registrationInfoToken": "[parameters('HostPoolRegistrationToken')]"
+                    }
+                }
+            }            
+        },        
+
+        {
+            // Enable Session Host Diagnostics (Insights)
+            "apiVersion": "2018-10-01",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/MicrosoftMonitoringAgent')]",
+            "condition": "[equals(parameters('EnableMonitoring'),true())]",
+            "location": "[parameters('SessionHostLocation')]",
+            "dependsOn": ["Session-Host-Registration-Loop"],
+            "copy": {
+                "name": "Session-Host-MicrosoftMonitoringAgent-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "properties": {
+                "publisher": "Microsoft.EnterpriseCloud.Monitoring",
+                "type": "MicrosoftMonitoringAgent",
+                "typeHandlerVersion": "1.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "workspaceId": "[parameters('LawWorkspaceId')]"
+                },
+                "protectedSettings": {
+                    "workspaceKey": "[parameters('LawPrimaryKey')]"
+                }
+            }
+        },        
+
+        // Enable Antimalware Extension
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/IaaSAntimalware')]",
+            "apiVersion": "2020-12-01",
+            "location": "[parameters('SessionHostLocation')]",
+            "dependsOn": ["Session-Host-Registration-Loop"],
+            "copy": {
+                "name": "Session-Host-IaaSAntimalware-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "condition": "[equals(parameters('SessionHostEnableIaaSAntimalware'),true())]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Security",
+                "type": "IaaSAntimalware",
+                "typeHandlerVersion": "1.3",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "AntimalwareEnabled": true,
+                    "Exclusions": {
+                        "Extensions": "",
+                        "Paths": "",
+                        "Processes": ""
+                    },
+                    "RealtimeProtectionEnabled" : "true",
+                    "ScheduledScanSettings": {
+                        "isEnabled": "false",
+                        "scanType": "Quick",
+                        "day": "7",
+                        "time": "120"
+                    }
+                },
+                "protectedSettings": null
+            }
+        },
+
+        {
+            // Enable BitLocker
+            // https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/azure-disk-enc-windows
+            // https://azsec.azurewebsites.net/2019/12/28/azure-disk-encryption-arm-template-for-windows-vm/
+            "type":"Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/diskEncryption')]",
+            "apiVersion": "2020-12-01",
+            "location": "[parameters('SessionHostLocation')]",
+            "dependsOn": ["Session-Host-Registration-Loop"],
+            "copy": {
+                "name": "Session-Host-BitLocker-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },            
+            "condition": "[equals(parameters('SessionHostEnableBitLocker'),true())]",
+            "properties": {
+                "publisher": "Microsoft.Azure.Security",
+                "type": "AzureDiskEncryption",
+                "typeHandlerVersion": "2.2",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "EncryptionOperation":"EnableEncryption",
+                    "KeyEncryptionAlgorithm":"RSA-OAEP",
+                    "KeyVaultURL": "[parameters('BitLockerKeyVaultURL')]",
+                    "KeyVaultResourceId": "[parameters('BitlockerKeyVaultResourceId')]",
+                    "VolumeType": "OS" // All, OS or Data
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}
