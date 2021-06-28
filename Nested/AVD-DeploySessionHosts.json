@@ -96,6 +96,13 @@
                 "description": "Local administrator password for each of the Session Hosts"
             }
         },
+        "SessionHostOSDiskNameSuffix": {
+            "type": "string",
+            "defaultValue": "-OSDisk",
+            "metadata": {
+                "description": "The name to append onto the OS disk name. e.g. if 'OSDisk' the disk object becomes VMNAME-01-OSDisk"
+            }
+        },
         "SessionHostOSDiskType": {
             "type": "string",
             "metadata": {
@@ -162,6 +169,27 @@
                 "description": "Domain join password"
             }
         },
+        "NicNamePrefix": {
+            "type": "string",
+            "defaultValue": "NIC-",
+            "metadata": {
+                "description": "Prefix for the name of the NIC. NIC name by default will match the VMName with this value used as a prefix. e.g. NIC-VMNAME05."
+            }
+        },
+        "NicNameSuffix": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Suffix for the name of the NIC. NIC name by default will match the VMName with this value used as a suffix. e.g. VNAME05-VNIC."
+            }
+        },
+        "NicNameNumberSuffix": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Instance number to add to the end of the NIC name. NIC name by default will match the VMName with this value used as a suffix e.g. NIC-VMNAME05-VNIC01."
+            }
+        },
         "NicTags": {
             "type": "object",
             "defaultValue": {},
@@ -225,7 +253,7 @@
         {
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2020-05-01",                    
-            "name": "[concat('NIC-',parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
+            "name": "[concat(parameters('NicNamePrefix'),parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),parameters('NicNameSuffix'),parameters('NicNameNumberSuffix'))]",
             "tags": "[parameters('NicTags')]",
             "copy": {
                 "name": "Session-Host-NIC-Loop",
@@ -261,7 +289,7 @@
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', concat('NIC-',parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')))]",
+                "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('NicNamePrefix'),parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),parameters('NicNameSuffix'),parameters('NicNameNumberSuffix')))]",                
                 "[resourceId('Microsoft.Compute/availabilitySets', parameters('AvailabilitySetName'))]"
             ],
             "properties": {
@@ -282,7 +310,7 @@
                         "managedDisk": {
                             "storageAccountType": "[parameters('SessionHostOSDiskType')]"
                         },
-                        "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),3,'0'),'-OS')]",
+                        "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),3,'0'),parameters('SessionHostOSDiskNameSuffix'))]",
                         "diskSizeGB": "[parameters('SessionHostOSDiskSizeGB')]"                        
                     },
                     "imageReference": {
@@ -292,7 +320,7 @@
                 "networkProfile": {
                     "networkInterfaces": [
                         {                                  
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('NIC-',parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')))]"
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('NicNamePrefix'),parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),parameters('NicNameSuffix'),parameters('NicNameNumberSuffix')))]"
                         }
                     ]
                 },
