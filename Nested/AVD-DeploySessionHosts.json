@@ -133,6 +133,18 @@
                 "description": "Enable Bitlocker on each of the Session Hosts"
             }
         },
+        "SessionHostBitLockerKeyEncryptionAlgorithm": {
+            "type": "string",
+            "allowedValues": [
+                "RSA-OAEP",
+                "RSA-OAEP-256",
+                "RSA1_5"
+            ],
+            "defaultValue": "RSA-OAEP",
+            "metadata": {
+                "description": "Specify the required BitLocker KeyEncryptionAlgorithm"
+            }
+        },
         "BitLockerKeyVaultURL": {
             "type": "string",
             "metadata": {
@@ -415,7 +427,7 @@
             }
         },        
 
-        // Enable Antimalware Extension
+        // Enable Antimalware Extension - this enables rollup reporting to Azure Security Centre. Assumes that GPO will be controlling the speciific configuration on the endpoint settings.
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/IaaSAntimalware')]",
@@ -472,7 +484,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "EncryptionOperation":"EnableEncryption",
-                    "KeyEncryptionAlgorithm":"RSA-OAEP",
+                    "KeyEncryptionAlgorithm":"[parameters('SessionHostBitLockerKeyEncryptionAlgorithm')]",
                     "KeyVaultURL": "[parameters('BitLockerKeyVaultURL')]",
                     "KeyVaultResourceId": "[parameters('BitlockerKeyVaultResourceId')]",
                     "VolumeType": "OS" // All, OS or Data
