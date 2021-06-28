@@ -100,7 +100,7 @@
             "type": "string",
             "defaultValue": "-OSDisk",
             "metadata": {
-                "description": "The name to append onto the OS disk name. e.g. if 'OSDisk' the disk object becomes VMNAME-01-OSDisk"
+                "description": "The name to append onto the OS disk name. e.g. if '-OSDisk' the disk object becomes VMNAME-01-OSDisk"
             }
         },
         "SessionHostOSDiskType": {
@@ -124,7 +124,7 @@
         "SessionHostEnableIaaSAntimalware": {
             "type": "bool",
             "metadata": {
-                "description": "Enable IaaSAntimalware extension on each of the Session Hosts"
+                "description": "Enable IaaSAntimalware extension on each of the Session Hosts. Assumes GPO will configure specific malware settings on hosts."
             }
         },
         "SessionHostEnableBitLocker": {
@@ -154,7 +154,7 @@
         "DomJoinOUPath": {
             "type": "string",
             "metadata": {
-                "description": "The OU path to of where to join domain to"
+                "description": "The OU path of where to place the computer object during the domain join process"
             }
         },
         "DomJoinUsername": {
