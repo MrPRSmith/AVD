@@ -145,6 +145,20 @@
                 "description": "Specify the required BitLocker KeyEncryptionAlgorithm"
             }
         },
+        "SessionHostUseAvailabilityZones": {
+            "type": "bool",
+            "defaultValue": "false",
+            "metadata": {
+                "description": "Specify if to split session hosts across Availability Zones"
+            }
+        },
+        "SessionHostMaxAvailabilityZones": {
+            "type": "int",
+            "defaultValue": 3,
+            "metadata": {
+                "description": "Specify how many Availability Zones to split session hosts between"
+            }
+        },
         "BitLockerKeyVaultURL": {
             "type": "string",
             "metadata": {
@@ -309,7 +323,7 @@
                     "vmSize": "[parameters('SessionHostVmSize')]"
                 },
                 "availabilitySet": {
-                    "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]"
+                    "id": "[if(parameters('SessionHostUseAvailabilityZones'),'',resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName')))]"
                 },
                 "osProfile": {
                     "computerName": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
@@ -342,7 +356,10 @@
                     }
                 },
                 "licenseType": "Windows_Client"
-            }
+            },
+            "zones": [
+                "[if(parameters('SessionHostUseAvailabilityZones'),if(greaterOrEquals(parameters('SessionHostsNumberToDeploy'),2),split(string(add(mod(copyIndex(),parameters('SessionHostMaxAvailabilityZones')),1)), ','),''),'')]"
+            ]
         },
 
         // Domain Join VMs
