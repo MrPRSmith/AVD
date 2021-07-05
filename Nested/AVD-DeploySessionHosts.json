@@ -147,7 +147,7 @@
         },
         "SessionHostUseAvailabilityZones": {
             "type": "bool",
-            "defaultValue": "false",
+            "defaultValue": false,
             "metadata": {
                 "description": "Specify if to split session hosts across Availability Zones"
             }
