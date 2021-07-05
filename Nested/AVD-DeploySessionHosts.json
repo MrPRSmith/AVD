@@ -306,7 +306,7 @@
         // Create VMs (Session Hosts)
         {
             "type": "Microsoft.Compute/virtualMachines",
-            "apiVersion": "2019-07-01",
+            "apiVersion": "2020-12-01",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),3,'0'))]",
             "tags": "[parameters('SessionHostTags')]",
             "location": "[parameters('SessionHostLocation')]",
@@ -322,9 +322,11 @@
                 "hardwareProfile": {
                     "vmSize": "[parameters('SessionHostVmSize')]"
                 },
-                "availabilitySet": {
-                    "id": "[if(parameters('SessionHostUseAvailabilityZones'),'',resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName')))]"
-                },
+                // Only associate with Availability Set if Zones are not being used
+                "availabilitySet": "[if(parameters('SessionHostUseAvailabilityZones'),json('null'),resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName')))]",
+                //"availabilitySet": {
+                //    "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]"                                        
+                //},
                 "osProfile": {
                     "computerName": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
                     "adminUsername": "[parameters('SessionHostLocalAdminUsername')]",
@@ -357,9 +359,8 @@
                 },
                 "licenseType": "Windows_Client"
             },
-            "zones": [
-                "[if(parameters('SessionHostUseAvailabilityZones'),if(greaterOrEquals(parameters('SessionHostsNumberToDeploy'),2),split(string(add(mod(copyIndex(),parameters('SessionHostMaxAvailabilityZones')),1)), ','),''),'')]"
-            ]
+            // Only associate with an Availability Zone if specified
+            "zones": "[if(parameters('SessionHostUseAvailabilityZones'),if(greaterOrEquals(parameters('SessionHostsNumberToDeploy'),2),array(split(string(add(mod(copyIndex(),parameters('SessionHostMaxAvailabilityZones')),1)), ',')),''),'')]"
         },
 
         // Domain Join VMs
