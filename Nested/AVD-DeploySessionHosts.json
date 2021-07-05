@@ -255,7 +255,12 @@
         }
     },
     "functions": [],
-    "variables": {},
+    "variables": {
+        // https://www.dcac.com/blog/dynamically-assigning-an-availability-set-to-a-vm-in-an-arm-template
+        "AvailabilitySetID": {
+            "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]"
+        }
+    },
     "resources": [
         
         // Create Availability Sets
@@ -322,11 +327,8 @@
                 "hardwareProfile": {
                     "vmSize": "[parameters('SessionHostVmSize')]"
                 },
-                // Only associate with Availability Set if Zones are not being used
-                "availabilitySet": "[if(parameters('SessionHostUseAvailabilityZones'),json('null'),resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName')))]",
-                //"availabilitySet": {
-                //    "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]"                                        
-                //},
+                // Do not associate with an Availability Set if Zones are being used
+                "availabilitySet": "[if(parameters('SessionHostUseAvailabilityZones'),json('null'),variables('AvailabilitySetID'))]",
                 "osProfile": {
                     "computerName": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
                     "adminUsername": "[parameters('SessionHostLocalAdminUsername')]",
