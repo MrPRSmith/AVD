@@ -149,14 +149,16 @@
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Specify if to split session hosts across Availability Zones"
+                "description": "Specify if to split session hosts across Availability Zones. Default is to use an Availability Set and not use Zones."
             }
         },
         "SessionHostMaxAvailabilityZones": {
             "type": "int",
             "defaultValue": 3,
+            "minValue": 1,
+            "maxValue": 3,            
             "metadata": {
-                "description": "Specify how many Availability Zones to split session hosts between"
+                "description": "Specify how many Availability Zones to split session hosts across. "
             }
         },
         "BitLockerKeyVaultURL": {
