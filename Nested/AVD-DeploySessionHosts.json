@@ -363,7 +363,7 @@
                 },
                 "licenseType": "Windows_Client"
             },
-            // Only associate with an Availability Zone if specified
+            // Only associate with an Availability Zone if specified. By default use an Availability Set
             "zones": "[if(parameters('SessionHostUseAvailabilityZones'),if(greaterOrEquals(parameters('SessionHostsNumberToDeploy'),2),array(split(string(add(mod(copyIndex(),parameters('SessionHostMaxAvailabilityZones')),1)), ',')),''),'')]"
         },
 
@@ -396,7 +396,7 @@
             }                
         },
 
-        // Register VMs (Sesion Hosts) to the AVD Service
+        // Register VMs (Session Hosts) to the AVD Service
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2019-07-01",
