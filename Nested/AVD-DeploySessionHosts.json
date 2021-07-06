@@ -7,130 +7,130 @@
             "type": "string",
             "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip",
             "metadata": {
-                "description": "URL to the location of the required AVD artifacts"
+                "description": "URL to the location of the required AVD artifacts."
             }
         },
         "HostPoolName": {
             "type": "string",
             "metadata": {
-                "description": "Name of the AVD Host Pool to which the session hosts will join"
+                "description": "Name of the AVD Host Pool to which the session hosts will associate."
             }
         },
         "HostPoolRegistrationToken": {
             "type": "string",
             "metadata": {
-                "description": "The registration token for the session hosts to associate with the specified Host Pool"
+                "description": "The registration token for the session hosts to use to associate with the specified Host Pool."
             }
         },
         "AvailabilitySetName": {
             "type": "string",
             "metadata": {
-                "description": "Name of the Availability Set to create"
+                "description": "Name of the Availability Set to create."
             }
         },
         "AvailabilitySetTags": {
             "type": "object",
             "defaultValue": {},
             "metadata": {
-                "description": "Tags that will apply to the resource"
+                "description": "Tags that will apply to the resource."
             }
         },
         "AvailabilitySetLocation": {
             "type": "string",
             "metadata": {
-                "description": "Location of the Availability Set"
+                "description": "Location of the Availability Set."
             }
         },
         "SessionHostsNumberToDeploy": {
             "type": "int",
             "metadata": {
-                "description": "The number of session Hosts to deploy"
+                "description": "The number of session Hosts to deploy."
             }
         },
         "SessionHostNamePrefix": {
             "type": "string",
             "metadata": {
-                "description": "The computer name prefix for the session hosts"
+                "description": "The computer name prefix for the session hosts."
             }
         },
         "SessionHostNameInitialNumber": {
             "type": "int",
             "metadata": {
-                "description": "The initial instance number for the session host. e.g. Setting 4 will mean the session host numbering starts from 4 resulting in VMNAME-4 onwards"
+                "description": "The initial instance number for the session host. e.g. Setting 4 will mean the session host numbering starts from 4 resulting in VMNAME-4 onwards."
             }
         },
         "SessionHostNumberPadding": {
             "type": "int",
             "metadata": {
-                "description": "Padding for the instance number. e.g. setting 3 will use 004 instead of 4 or 04 resulting in VMNAME-004"
+                "description": "Padding for the instance number. e.g. setting 3 will use 004 instead of 4 or 04 resulting in VMNAME-004."
             }
         },
         "SessionHostLocation": {
             "type": "string",
             "metadata": {
-                "description": "Azure region for the session host deployment"
+                "description": "Azure region for the session host deployment."
             }
         },
         "SessionHostTags": {
             "type": "object",
             "defaultValue": {},
             "metadata": {
-                "description": "Tags that will apply to the resource"
+                "description": "Tags that will apply to the resource."
             }
         },
         "SessionHostVmSize": {
             "type": "string",
             "metadata": {
-                "description": "Size of the Azure VM that will be the AVD Session Host"
+                "description": "Size of the Azure VM that will be the AVD Session Host."
             }
         },
         "SessionHostLocalAdminUsername": {
             "type": "securestring",
             "metadata": {
-                "description": "Local administrator username for each Session Host"
+                "description": "Local administrator username for each Session Host."
             }
         },
         "SessionHostLocalAdminPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "Local administrator password for each of the Session Hosts"
+                "description": "Local administrator password for each of the Session Hosts."
             }
         },
         "SessionHostOSDiskNameSuffix": {
             "type": "string",
             "defaultValue": "-OSDisk",
             "metadata": {
-                "description": "The name to append onto the OS disk name. e.g. if '-OSDisk' the disk object becomes VMNAME-01-OSDisk"
+                "description": "The name to append onto the OS disk name. e.g. if '-OSDisk' the disk object becomes VMNAME-OSDisk."
             }
         },
         "SessionHostOSDiskType": {
             "type": "string",
             "metadata": {
-                "description": "Disk Type for each Session Hosts OS"
+                "description": "The Disk Type for each Session Hosts OS disk."
             }
         },
         "SessionHostOSDiskSizeGB": {
             "type": "int",
             "metadata": {
-                "description": "Size of each Session Hosts OS disk"
+                "description": "Size of each Session Hosts OS disk in GB"
             }
         },
         "SessionHostSourceImageID": {
             "type": "string",
             "metadata": {
-                "description": "Session host source image ID. This can be a Shared Image Gallery ID or Managed Image ID"
+                "description": "Session host source image ID. This can be a Shared Image Gallery ID or Managed Image ID."
             }
         },
         "SessionHostEnableIaaSAntimalware": {
             "type": "bool",
             "metadata": {
-                "description": "Enable IaaSAntimalware extension on each of the Session Hosts. Assumes GPO will configure specific malware settings on hosts."
+                "description": "Enable IaaSAntimalware extension on each of the Session Hosts. This assumes that GPO (or other method) will configure specific malware settings on the session hosts after deployment."
             }
         },
         "SessionHostEnableBitLocker": {
             "type": "bool",
             "metadata": {
-                "description": "Enable Bitlocker on each of the Session Hosts"
+                "description": "Enable Bitlocker OS disk encryption on each of the Session Hosts."
             }
         },
         "SessionHostBitLockerKeyEncryptionAlgorithm": {
@@ -142,14 +142,14 @@
             ],
             "defaultValue": "RSA-OAEP",
             "metadata": {
-                "description": "Specify the required BitLocker KeyEncryptionAlgorithm"
+                "description": "Specify the required BitLocker KeyEncryptionAlgorithm to use."
             }
         },
         "SessionHostUseAvailabilityZones": {
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Specify if to split session hosts across Availability Zones. Default is to use an Availability Set and not use Zones."
+                "description": "Specify if to split session host deployment across Availability Zones. Default is to use  Availability Sets and not use Zones."
             }
         },
         "SessionHostMaxAvailabilityZones": {
@@ -158,43 +158,43 @@
             "minValue": 1,
             "maxValue": 3,            
             "metadata": {
-                "description": "Specify how many Availability Zones to split session hosts across. "
+                "description": "Specify how many Availability Zones to split session hosts over. By default this will be 3."
             }
         },
         "BitLockerKeyVaultURL": {
             "type": "string",
             "metadata": {
-                "description": "URL of the KeyVault to store BitLocker recovery data"
+                "description": "URL of the KeyVault to store BitLocker recovery data."
             }
         },
         "BitlockerKeyVaultResourceId": {
             "type": "string",
             "metadata": {
-                "description": "ID of the KeyVault to store BitLocker recovery data"
+                "description": "ID of the KeyVault to store BitLocker recovery data."
             }
         },
         "DomJoinDomainToJoin": {
             "type": "string",
             "metadata": {
-                "description": "DNS domain name of the Active Directory domain to join"
+                "description": "DNS domain name of the Active Directory domain to join."
             }
         },
         "DomJoinOUPath": {
             "type": "string",
             "metadata": {
-                "description": "The OU path of where to place the computer object during the domain join process"
+                "description": "The OU path of where to place the computer object during the domain join process."
             }
         },
         "DomJoinUsername": {
             "type": "securestring",
             "metadata": {
-                "description": "Domain Join user name"
+                "description": "Domain Join user name."
             }
         },
         "DomJoinPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "Domain join password"
+                "description": "Domain join password."
             }
         },
         "NicNamePrefix": {
@@ -222,37 +222,37 @@
             "type": "object",
             "defaultValue": {},
             "metadata": {
-                "description": "Tags that will apply to the resource"
+                "description": "Tags that will apply to the resource."
             }
         },
         "NicSubnetID": {
             "type": "string",
             "metadata": {
-                "description": "ID of the subnet for the NICs"
+                "description": "ID of the subnet for the NICs."
             }
         },
         "NicEnableAcceleratedNetworking": {
             "type": "bool",
             "metadata": {
-                "description": "Enable or disable NIC acceleration"
+                "description": "Enable or disable NIC acceleration."
             }
         },
         "EnableMonitoring": {
             "type": "bool",
             "metadata": {
-                "description": "Enable monitoring on the resources that are to be deployed"
+                "description": "Enable monitoring on the resources that are to be deployed."
             }
         },
         "LawWorkspaceId": {
             "type": "securestring",
             "metadata": {
-                "description": "ID of the Log Analytics Workspace"
+                "description": "ID of the Log Analytics Workspace to use for monitoring."
             }
         },
         "LawPrimaryKey": {
             "type": "securestring",
             "metadata": {
-                "description": "Primary Key for the Log Analytics Workspace"
+                "description": "Primary Key for the Log Analytics Workspace to use for monitoring."
             }
         }
     },
@@ -265,7 +265,7 @@
     },
     "resources": [
         
-        // Create Availability Sets
+        // Create Availability Set when deploying Session Hosts, but only when not using Availability Zones.
         {
             "type": "Microsoft.Compute/availabilitySets",
             "apiVersion": "2019-07-01",
@@ -282,7 +282,7 @@
             }
         },
 
-        // Create Network Interfaces for VMs
+        // Create Network Interfaces for VMs.
         {
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2020-05-01",                    
@@ -310,7 +310,7 @@
             }
         },
 
-        // Create VMs (Session Hosts)
+        // Create VMs (Session Hosts).
         {
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2020-12-01",
@@ -329,7 +329,7 @@
                 "hardwareProfile": {
                     "vmSize": "[parameters('SessionHostVmSize')]"
                 },
-                // Do not associate with an Availability Set if Zones are being used
+                // Do not associate with an Availability Set if Zones are being used.
                 "availabilitySet": "[if(parameters('SessionHostUseAvailabilityZones'),json('null'),variables('AvailabilitySetID'))]",
                 "osProfile": {
                     "computerName": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
@@ -363,11 +363,11 @@
                 },
                 "licenseType": "Windows_Client"
             },
-            // Only associate with an Availability Zone if specified. By default use an Availability Set
+            // Only associate with an Availability Zone if specified. By default use an Availability Set.
             "zones": "[if(parameters('SessionHostUseAvailabilityZones'),if(greaterOrEquals(parameters('SessionHostsNumberToDeploy'),2),array(split(string(add(mod(copyIndex(),parameters('SessionHostMaxAvailabilityZones')),1)), ',')),''),'')]"
         },
 
-        // Domain Join VMs
+        // Domain Join VMs (Session Hosts) - Windowws Active Directory Domain Join (on-premises AD).
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2019-07-01",
@@ -396,7 +396,7 @@
             }                
         },
 
-        // Register VMs (Session Hosts) to the AVD Service
+        // Register VMs (Session Hosts) to the AVD Service.
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2019-07-01",
@@ -424,7 +424,7 @@
         },        
 
         {
-            // Enable Session Host Diagnostics (Insights)
+            // Enable Session Host (VM) Diagnostics (Insights).
             "apiVersion": "2018-10-01",
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/MicrosoftMonitoringAgent')]",
@@ -486,7 +486,7 @@
         },
 
         {
-            // Enable BitLocker
+            // Enable BitLocker OS Disk Encryption.
             // https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/azure-disk-enc-windows
             // https://azsec.azurewebsites.net/2019/12/28/azure-disk-encryption-arm-template-for-windows-vm/
             "type":"Microsoft.Compute/virtualMachines/extensions",
