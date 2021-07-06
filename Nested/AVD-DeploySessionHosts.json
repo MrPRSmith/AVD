@@ -272,7 +272,7 @@
             "name": "[parameters('AvailabilitySetName')]",
             "tags": "[parameters('AvailabilitySetTags')]",
             "location": "[parameters('AvailabilitySetLocation')]",
-            "condition": "[greater(parameters('SessionHostsNumberToDeploy'),0)]",
+            "condition": "[and(greater(parameters('SessionHostsNumberToDeploy'),0),not(parameters('SessionHostUseAvailabilityZones')))]",
             "properties": {
                 "platformFaultDomainCount": 2,
                 "platformUpdateDomainCount": 5
