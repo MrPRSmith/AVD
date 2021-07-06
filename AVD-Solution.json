@@ -1,0 +1,798 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+  "parameters": {
+        "AvdEnvironment": {
+            "type": "string",
+            "allowedValues": [
+                "PROD",
+                "TEST"
+            ],
+            "defaultValue": "TEST",
+            "metadata": {
+                "description": "Specify the AVD environment that the AVD resources are being deployed for? Are they PROD (Production) or TEST (Staging / Validation) host pools."
+            }
+        },
+        "AvdArtifactsLocation": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip",
+            "metadata": {
+                "description": "URL to the AVD Artifacts."
+            }
+        },
+        "AvdSessionHostTemplateUri": {
+            "type": "string",
+            "defaultValue": "https://raw.githubusercontent.com/MrPRSmith/AVD/main/Nested/AVD-DeploySessionHosts.json",
+            "metadata": {
+                "description": "URL to the AVD Session Host deployment template."
+            }
+        },        
+        "MetaDataRegion": {
+            "type": "string",
+            "allowedValues": [
+                "UKSouth",
+                "UKWest",
+                "NorthEurope",
+                "WestEurope",
+                "EastUS",
+                "EastUS2"
+            ],          
+            "defaultValue": "EastUS2",  
+            "metadata": {
+                "description": "The Azure region where AVD metadata should be stored."
+            }
+        },
+        "Region": {
+            "type": "string",
+            "allowedValues": [
+                "UKSouth",
+                "UKWest",
+                "NorthEurope",
+                "WestEurope"
+            ],
+            "defaultValue": "",
+            "metadata": {
+                "description": "The Azure region to which AVD resources are to be deployed. e.g. UKS (UK South) or UKW (UK West)."
+            }
+        },
+        "DefaultTags": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "Default Tags that will apply to all resources, unless specific Tags are assigned to specific resource types."
+            }
+        },
+        "WorkspaceNumber": {
+            "type": "Int",
+            "minValue": 1,
+            "maxValue": 99,
+            "metadata": {
+                "description": "Number of the WVD Workspace. e.g. 1. This will be concatenated to generate the Workspace name e.g. AVD-STAGE-WS01."
+            }
+        },
+        "WorkspaceResourceGroup": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of the Resource Group for the location of the AVD Workspace."
+            }
+        },
+        "WorkspaceFriendlyName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "A friendly name to apply to the AVD workspace."
+            }
+        },
+        "WorkspaceDescription": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "A description to apply to the AVD workspace."
+            }
+        },
+        "WorkspaceAlreadyExists": {
+            "type": "bool",
+            "defaultValue": true,
+            "metadata": {
+                "description": "Toggle to create or update the specified AVD workspace. Once the workspace has been created this value should be set to True. Where the workspace already exists the process of updating the Workspace will detach all but the default Desktop Application Group from the workspace"
+            }
+        },
+        "HostPoolNumber": {
+            "type": "Int", 
+            "minValue": 1,
+            "maxValue": 99,           
+            "metadata": {
+                "description": "Number of the AVD Host Pool. e.g. 1. This will be concatenated to generate the Host Pool name e.g. AVD-STAGE-HP01."
+            }
+        },
+        "HostPoolType": {            
+            "type": "string",
+            "allowedValues": [
+                "Pooled",
+                "Personal"
+            ],
+            "defaultValue": "Pooled",
+            "metadata": {
+                "description": "AVD Host Pool type - personal or pooled."
+            }
+        },
+        "HostPoolFriendlyName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Friendly name for the AVD Host Pool."
+            }
+        },
+        "HostPoolDescription": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "A description to assign to the AVD Host Pool."
+            }
+        },
+        "HostPoolTags": {
+            "type": "object",
+            "defaultValue": {},
+            "metadata": {
+                "description": "The Tags to apply to all Host Pool specific resources. e.g. VM, NIC and Disk."
+            }
+        },
+        "HostPoolMaxSessionsPerHost": {
+            "type": "int",
+            "defaultValue": 999999,
+            "maxValue": 999999,
+            "metadata": {
+                "description": "The maximum number of concurrent user sessions allowed per session host. Max and default value is 999999."
+            }
+        },
+        "HostPoolLoadBalancingAlgorithm": {
+            "type": "string",
+            "allowedValues": [
+                "DepthFirst",
+                "BreadthFirst"
+            ],
+            "defaultValue": "BreadthFirst",
+            "metadata": {
+                "description": "The type of load balancing algorithm that is to be applied to the AVD host pool. DepthFirst or BreadthFirst."
+            }
+        },
+        "HostPoolCustomRDPProperty": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "String containing the custom RDP properties to apply to the AVD host pool."
+            }
+        },
+        "HostPoolIsValidationEnvironment": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Is the AVD host pool a validation environment? Defaults to no (false)."
+            }
+        },
+        "SessionHostResourceGroup": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the Resource Group into which to deploy the AVD session hosts."
+            }
+        },
+        "SessionHostNameInitialNumber": {
+            "type": "int",
+            "defaultValue": 1,
+            "maxValue": 999,
+            "metadata": {
+                "description": "The starting count (instance) number for AVD Session Hosts naming e.g. VMNAME-X where X is the SessionHostNameInitialNumber."
+            }
+        },
+        "SessionHostsNumberToDeploy": {
+            "type": "int",
+            "defaultValue": 0,
+            "maxValue": 999,
+            "metadata": {
+                "description": "The number of AVD Session Hosts (VMs) to deploy."
+            }
+        },
+        "SessionHostVmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3",
+            "metadata": {
+                "description": "The AVD session host VM size to deploy."
+            }
+        },
+        "SessionHostOSDiskType": {
+            "type": "string",
+            "allowedValues": [
+                "Premium_LRS",
+                "Standard_LRS",
+                "StandardSSD_LRS",
+                "UltraSSD_LRS"
+            ],
+            "defaultValue": "StandardSSD_LRS",
+            "metadata": {
+                "description": "The AVD session host disk type. Either Premium_LRS, Standard_LRS, StandardSSD_LRS or UltraSSD_LRS."
+            }
+        },
+        "SessionHostOSDiskSizeGB": {
+            "type": "int",
+            "defaultValue": 128,
+            "metadata": {
+                "description": "The size of the AVD session hosts OS disk in GB. This cannot be smaller than that of the image being used as the reference."
+            }
+        },
+        "SessionHostEnableIaaSAntimalware": {
+            "type": "bool",
+            "defaultValue": false,            
+            "metadata": {
+                "description": "Enable IaaSAntimalware extension on each of the Session Hosts. This assumes that GPO (or other method) will configure specific malware settings on the session hosts after deployment."
+            }
+        },
+        "SessionHostEnableBitLocker": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable BitLocker OS disk encryption on the session hosts."
+            }
+        },   
+        "BitlockerKeyVaultResourceId": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) Key Vault location to store BitLocker recovery information. Must be specified when SessionHostEnableBitLocker is set to true."
+            }
+        },     
+        "SessionHostNicSubnetName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the subnet to which the session host NIC will be associated."
+            }
+        },
+        "SessionHostNetworkResourceGroupName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the resource group containing the vNet of the subnet that the session host NIC will be associated with."
+            }
+        },
+        "SessionHostVnetName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the vNet containing the subnet to which the session host NIC will be associated."
+            }
+        },
+        "SessionHostLocalAdminUsername": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The session host local administrator username. This should be a Keyvault reference."
+            }
+        },
+        "SessionHostLocalAdminPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The session host local administrator password. This should be a Keyvault reference."
+            }
+        },
+        "SessionHostVmGeneration": {
+            "type": "string",
+            "allowedValues": [
+                "Gen1",
+                "Gen2"
+            ],
+            "defaultValue": "Gen1",
+            "metadata": {
+                "description": "The session host VM generation. Gen 2 VMs support next generation security features as includes vTPM and SecureBoot."
+            }
+        },
+        "SessionHostSourceImageID": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "OPTIONAL. By default a Shared Image Gallery image will be used as the source. Setting an image reference ID here will bypass this process and use this specified image ID to deploy the session hosts."
+            }
+        },
+        "SessionHostImageVersion": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "OPTIONAL. Applies a tag called ImageVersion to Session Hosts with the value specified."
+            }
+        },
+        "SessionHostAvailabilityConfiguration": {
+            "type": "string",
+            "allowedValues":[
+                "AvailabilitySet",
+                "AvailabilityZone"
+            ],
+            "defaultValue": "AvailabilitySet",
+            "metadata": {
+                "description": "Split session hosts across Availability Zones, or configure as an Availability Set. Where Zone is specified, the value of SessionHostsNumberToDeploy must be 2 or more."
+            }
+        },
+        "DomJoinDomainToJoin": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "DNS name of the Active Directory domain to join."
+            }
+        },
+        "DomJoinOUPath": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The OU path of where to place the computer object during the domain join process. Where a computer object already exists, it will remain in its current location and will not be moved to the OU specified."
+            }
+        },
+        "DomJoinUsername": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The domain user account to use when domain joining the session host VM. This should be a Keyvault reference."
+            }
+        },
+        "DomJoinPassword": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The password for the domain user acount used to join the session host VM to the domain. This should be a Keyvault reference."
+            }
+        },
+        "EnableMonitoring": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable monitoring (Insights) to an existing Log Analytics Workspace. This will enable monitoring of the Sessions Hosts, Host Pool and Workspace (but not Application Groups)."
+            }
+        },
+        "LawName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of the Log Analytics Workspace to use for monitoring."
+            }
+        },
+        "LawResourceGroupName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of the Resource Group containing the Log Analytics Workspace to use for monitoring."
+            }
+        },
+
+        "LawWorkspaceId": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Workspace ID of the Log Analytics Workspace to use for monitoring. This should be a Keyvault reference."
+            }
+        },
+
+        "LawPrimaryKey": {
+            "type": "securestring",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Primary Key for the Log Analytics Workspace to use for monitoring. This should be a Keyvault reference."
+            }
+        },
+
+        "SharedImageGalleryName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of the Shared Image Gallery (SIG) containing the image from which to create the AVD session host VMs."
+            }
+        },
+        "SharedImageGalleryResourceGroupName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of the Resource Group containing the Shared Image Gallery."
+            }
+        },
+        "SharedImageGalleryImageDefinition": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Name of the Image Definition from the Shared Image Gallery to use to create the AVD session host VMs. Leaving blank will autogenerate the definition name from the naming convention of the host pool and VM generation"
+            }
+        },
+        "AdminUserEmail": {
+            "type": "string",
+            "minLength": 2,
+            "metadata": {
+                "description": "The email address of the user deploying the template. By default this will be added as a tag on all resources."
+            }
+        },        
+        "CurrentDateTime": {
+            "type": "string",
+            "defaultValue": "[utcNow('u')]",
+            "metadata": {
+                "description": "The current date and time."
+            }
+        }
+    },
+    "functions": [],
+  "variables": {
+
+        // Object Tags - the default tag values if not specified in the parameter file
+        "DefaultTags": {
+            "Environment": "[toUpper(parameters('AvdEnvironment'))]",
+            "CreatedBy": "[parameters('AdminUserEmail')]",
+            "Application": "Azure Virtual Desktop",
+            "HostPool": "[variables('HostPoolName')]",
+            "DeploymentDate": "[parameters('CurrentDateTime')]"
+        },
+        "DefaultTagsForAllObjects": "[if(empty(parameters('DefaultTags')),variables('DefaultTags'),parameters('DefaultTags'))]",
+
+        // Location Array
+        "AzureRegionShortcodeLookup": {
+            "UKSouth": "UKS",
+            "UKWest": "UKW",
+            "NorthEurope": "NE",
+            "WestEurope": "WE"
+        },       
+        "AzureRegionShortCode": "[variables('AzureRegionShortcodeLookup')[parameters('Region')]]",
+
+        // WVD Metatdata regions - other regions are now in preview        
+        "MetadataLocation": "[parameters('MetaDataRegion')]",    
+
+        // Resources
+        "Location": "[parameters('Region')]",
+        "locationShortCode": "[variables('AzureRegionShortCode')]",
+
+        // Workspace - includes autonaming logic
+        "WorkspaceNumberPadding": 2,    // e.g. Set to 2 will mean generate  01, 02, 03 for single digit workspace numbers
+        "WorkspaceCreateOrUpdate": "[if(equals(parameters('WorkspaceAlreadyExists'),true()),'DoNotCreate','Create')]",
+        "WorkspaceName":"[concat('AVD-',parameters('AvdEnvironment'),'-WS',padLeft(parameters('WorkspaceNumber'),variables('WorkspaceNumberPadding'),'0'))]", // e.g. AVD-STAGE-WS01 or AVD-PROD-WS01
+        "WorkspaceLocation": "[variables('MetadataLocation')]",
+        "WorkspaceResourceGroup": "[if(empty(parameters('workspaceResourceGroup')), resourceGroup().name, parameters('workspaceResourceGroup'))]",
+        "WorkspaceTags": "[variables('DefaultTagsForAllObjects')]",
+
+        // Host Pool - includes autonaming logic
+        "HostPoolNumberPadding": 2,    // e.g. Set to 2 will mean generate  01, 02, 03 for single digit workspace numbers
+        "HostPoolName": "[concat('AVD-',parameters('AvdEnvironment'),'-HP',padLeft(parameters('HostPoolNumber'),variables('HostPoolNumberPadding'),'0'))]", // e.g. AVD-STAGE-HP01 or AVD-PROD-HP01
+        "HostPoolLocation": "[variables('MetadataLocation')]",
+        "HostPoolTags": "[variables('DefaultTagsForAllObjects')]",
+        "HostPoolType": "[parameters('HostPoolType')]",
+        
+        // Application Group - includes autonaming logic
+        "ApplicationGroupName": "[concat('AVD-',parameters('AvdEnvironment'),'-HP',padLeft(parameters('HostPoolNumber'),variables('HostPoolNumberPadding'),'0'),'-DAG')]", //e.g. AVD-STAGE-HP01-DAG or AVD-PROD-HP01-DAG
+        "ApplicationGroupLocation": "[variables('MetadataLocation')]",
+        "ApplicationGroupTags": "[variables('DefaultTagsForAllObjects')]", 
+
+        // Session Hosts - includes autonaming logic
+        "SessionHostNumberPadding": 3,  // e.g. Set to 3 will mean generate  001, 002, 003 for single digit workspace numbers
+        "SessionHostNamePrefix": "[concat('AVD',first(parameters('AvdEnvironment')),'-P',padLeft(parameters('HostPoolNumber'),variables('HostPoolNumberPadding'),'0'),variables('locationShortCode'),'-')]", //e.g. AVDS-P01WE-
+        "SessionHostOSDiskNameSuffix": "-OSDisk",
+        "SessionHostLocation": "[variables('Location')]",
+        "SessionHostResourceGroup": "[if(empty(parameters('SessionHostResourceGroup')), resourceGroup().name, parameters('SessionHostResourceGroup'))]",
+        "SessionHostTags": "[if(empty(parameters('SessionHostImageVersion')),variables('DefaultTagsForAllObjects'),union(variables('DefaultTagsForAllObjects'),createObject('ImageVersion',parameters('SessionHostImageVersion'))))]",
+        "SessionHostSourceImageID": "[if(empty(parameters('SessionHostSourceImageID')),concat(variables('SIGResourceID'),'/images/',variables('SIGImageDefinition')),parameters('SessionHostSourceImageID'))]",
+        "SessionHostUseAvailabilityZones": "[if(equals(parameters('SessionHostAvailabilityConfiguration'),'AvailabilityZone'),true(),false())]",
+
+        // Network
+        "NetworkResourceGroupName": "[parameters('SessionHostNetworkResourceGroupName')]",
+        "NetworkExistingVnetName": "[parameters('SessionHostVnetName')]",
+        "NetworkExistingSubnetName": "[parameters('SessionHostNicSubnetName')]",
+
+        // Network Interface - includes autonaming logic       
+        "NicTags": "[variables('DefaultTagsForAllObjects')]",
+        "NicSubnetID": "[resourceId(variables('NetworkResourceGroupName'),'Microsoft.Network/virtualNetworks/subnets',variables('NetworkExistingVnetName'),variables('NetworkExistingSubnetName'))]",
+        "NicEnableAcceleratedNetworking": false,
+        "NicNamePrefix": "NIC-",      // e.g. if "NIC-" the Nics name will be based on the VMName with this as the prefix NIC-VMNAME
+        "NicNameSuffix": "",          // e.g. if "-VNIC the Nics name will be based on the VMName with this as the suffix VMANME-VNIC
+        "NicNameNumberSuffix": "",    // e.g. if "-01" the Nic name will have this added as a suffix to the name NIC-VMNAME004-VNIC-01          
+
+        // Availability Set - includes autonaming logic
+        "AvailabilitySetName": "[concat('AS-AVD-',parameters('AvdEnvironment'),'-HP',padLeft(parameters('HostPoolNumber'),variables('HostPoolNumberPadding'),'0'),'-',variables('locationShortCode'))]", //e.g. AS-AVD-STAGE-HP01-WE or AS-AVD-PROD-HP01-WE
+        "AvailabilitySetLocation": "[variables('Location')]",
+        "AvailabilitySetTags": "[variables('DefaultTagsForAllObjects')]",
+
+        // Shared Image Gallery                      
+        "SIGName": "[if(empty(parameters('SharedImageGalleryName')),concat('SIGAVD'),parameters('SharedImageGalleryName'))]",
+        "SIGImageDefinition": "[if(empty(parameters('SharedImageGalleryImageDefinition')),toUpper(concat('IMG-SIG-AVD-HP',padLeft(parameters('HostPoolNumber'),variables('HostPoolNumberPadding'),'0'),'-',toUpper(parameters('SessionHostVmGeneration')))),parameters('SharedImageGalleryImageDefinition'))]", 
+        "SIGResourceID": "[resourceId(parameters('SharedImageGalleryResourceGroupName'),'Microsoft.Compute/galleries',variables('SIGName'))]",
+
+        // Log Analytics Workspace
+        "LawResourceId": "[resourceId(parameters('LawResourceGroupName'),'microsoft.operationalinsights/workspaces',parameters('LawName'))]",
+       
+        // BitLocker Settings & Key Vault        
+        "SessionHostBitLockerKeyEncryptionAlgorithm": "RSA-OAEP",
+        "BitLockerKeyVaultName": "[last(split(parameters('BitlockerKeyVaultResourceId'),'/'))]",
+        "BitLockerKeyVaultURL": "[toLower(concat('https://',variables('BitLockerKeyVaultName'),'.vault.azure.net'))]"
+    },
+    "resources": [
+
+        // CREATE HOST POOL - If it already exists it will be updated
+        {
+            "type": "Microsoft.DesktopVirtualization/hostpools",
+            "apiVersion": "2020-10-19-preview",
+            "name": "[concat(variables('HostPoolName'))]",
+            "location": "[variables('HostPoolLocation')]",
+            "tags": "[variables('HostPoolTags')]",
+            "properties": {
+                "friendlyName": "[parameters('HostPoolFriendlyName')]",
+                "description": "[parameters('HostPoolDescription')]",
+                "hostPoolType": "[variables('HostPoolType')]",
+                "customRdpProperty": "[parameters('HostPoolCustomRDPProperty')]",
+                "loadBalancerType": "[parameters('HostPoolLoadBalancingAlgorithm')]",
+                "maxSessionLimit": "[parameters('HostPoolMaxSessionsPerHost')]",
+                "preferredAppGroupType": "Desktop",
+                "validationEnvironment": "[parameters('HostPoolIsValidationEnvironment')]",
+                "personalDesktopAssignmentType": "Automatic",
+                "registrationInfo": {
+                    "expirationTime": "[dateTimeAdd(parameters('CurrentDateTime'),'P1D')]",
+                    "token": null,
+                    "registrationTokenOperation": "Update"
+                }
+            }
+        },
+
+        {
+            // Enable Host Pool Diagnostics (Insights)
+            "type": "Microsoft.DesktopVirtualization/hostpools/providers/diagnosticSettings",
+            "apiVersion": "2017-05-01-preview",
+            "name": "[concat(variables('HostPoolName'),'/Microsoft.Insights/WVDInsights')]",
+            "condition": "[equals(parameters('EnableMonitoring'),true())]",                      
+            "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/hostpools', variables('HostPoolName'))]"
+            ],            
+            "properties": {
+                "workspaceId": "[variables('LawResourceId')]",
+                "logs": [
+                    {
+                        "category": "Checkpoint",
+                        "enabled": true
+                    },
+                    {
+                        "category": "Error",
+                        "enabled": true
+                    },
+                    {
+                        "category": "Management",
+                        "enabled": true
+                    },
+                    {
+                        "category": "Connection",
+                        "enabled": true
+                    },
+                    {
+                        "category": "HostRegistration",
+                        "enabled": true
+                    },
+                    {
+                        "category": "AgentHealthStatus",
+                        "enabled": true
+                    }
+                ]
+            }
+        },
+
+        // CREATE APPLICATION GROUP
+        {
+            "type": "Microsoft.DesktopVirtualization/applicationgroups",
+            "apiVersion": "2020-10-19-preview",
+            "name": "[variables('ApplicationGroupName')]",
+            "tags": "[variables('ApplicationGroupTags')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/hostpools', concat(variables('HostPoolName')))]"                
+            ],
+            "location": "[variables('ApplicationGroupLocation')]",            
+            "properties": {
+                "hostPoolArmPath": "[resourceId('Microsoft.DesktopVirtualization/hostpools/',variables('HostPoolName'))]",
+                "description": "[concat('Published user Desktop on ',variables('HostPoolName'))]",
+                "friendlyName": "[concat('Desktop HP',padLeft(parameters('HostPoolNumber'),variables('HostPoolNumberPadding'),'0'), ' (',parameters('AvdEnvironment'),')')]",
+                "applicationGroupType": "Desktop"            
+            }
+        },   
+
+        // CREATE WORKSPACE - LinkedTemplate (Nested)
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-06-01",
+            //"name": "[concat('LinkedTemplate-Workspace-',variables('WorkspaceName'))]",
+            "name": "[concat('CreateWorkspace-',variables('WorkspaceName'))]",
+            "resourceGroup": "[variables('WorkspaceResourceGroup')]",
+            "dependsOn":[
+                "[resourceId('Microsoft.DesktopVirtualization/applicationgroups', variables('ApplicationGroupName'))]"                
+            ],
+            "condition": "[equals(variables('WorkspaceCreateOrUpdate'),'Create')]",
+            "properties": {
+                "mode": "Incremental",
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",                    
+                    "resources": [
+                        {
+                            // CREATE WORKSPACE
+                            "type": "Microsoft.DesktopVirtualization/workspaces",
+                            "apiVersion": "2020-10-19-preview",
+                            "name": "[variables('WorkspaceName')]",
+                            "location": "[variables('WorkspaceLocation')]",                        
+                            "tags": "[variables('WorkspaceTags')]",
+                            "properties": {
+                                "description": "[parameters('WorkspaceDescription')]",
+                                "friendlyName": "[parameters('WorkspaceFriendlyName')]",
+                                "applicationGroupReferences": [
+                                    "[resourceId('Microsoft.DesktopVirtualization/applicationgroups/',variables('ApplicationGroupName'))]"
+                                ]
+                            }           
+                        },
+
+                        {
+                            // Enable Workspace Diagnostics (Insights)
+                            "type": "Microsoft.DesktopVirtualization/workspaces/providers/diagnosticSettings",
+                            "apiVersion": "2017-05-01-preview",
+                            "name": "[concat(variables('WorkspaceName'),'/Microsoft.Insights/WVDInsights')]",
+                            "condition": "[equals(parameters('EnableMonitoring'),true())]",
+                            "dependsOn": [
+                                "[resourceId(variables('WorkspaceResourceGroup'),'Microsoft.DesktopVirtualization/workspaces', variables('WorkspaceName'))]"                
+                            ],
+                            "properties": {
+                                "workspaceId": "[variables('LawResourceId')]",
+                                "logs": [
+                                    {
+                                        "category": "Checkpoint",
+                                        "enabled": true
+                                    },
+                                    {
+                                        "category": "Error",
+                                        "enabled": true
+                                    },
+                                    {
+                                        "category": "Management",
+                                        "enabled": true
+                                    },
+                                    {
+                                        "category": "Feed",
+                                        "enabled": true
+                                    }
+                                ]
+                            }
+                        }                        
+                    ]
+                }
+            }
+        },
+
+        // DEPLOY SESSION HOSTS - LinkedTemplate
+        {            
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2020-06-01",
+            "name": "[concat('DeploySessionHosts-',variables('HostPoolName'))]",
+            "resourceGroup": "[variables('SessionHostResourceGroup')]",
+            "dependsOn":[
+                "[resourceId('Microsoft.DesktopVirtualization/hostpools', concat(variables('HostPoolName')))]"
+            ],
+            "condition": "[greater(parameters('SessionHostsNumberToDeploy'),0)]",
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "[parameters('AvdSessionHostTemplateUri')]",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "AvdArtifactsLocation": {
+                        "value": "[parameters('AvdArtifactsLocation')]"
+                    },
+                    "HostPoolName": {
+                        "value": "[variables('HostPoolName')]"
+                    },
+                    "HostPoolRegistrationToken": {
+                        "value": "[reference(variables('HostPoolName')).registrationInfo.token]"                        
+                    },
+                    "AvailabilitySetName": {
+                        "value": "[variables('AvailabilitySetName')]"
+                    },
+                    "AvailabilitySetTags": {
+                        "value": "[variables('AvailabilitySetTags')]"
+                    },
+                    "AvailabilitySetLocation": {
+                        "value": "[variables('AvailabilitySetLocation')]"
+                    },
+                    "SessionHostsNumberToDeploy": {
+                        "value": "[parameters('SessionHostsNumberToDeploy')]"
+                    },
+                    "SessionHostNamePrefix": {
+                        "value": "[variables('SessionHostNamePrefix')]"
+                    },
+                    "SessionHostNameInitialNumber": {
+                        "value": "[parameters('SessionHostNameInitialNumber')]"
+                    },
+                    "SessionHostNumberPadding": {
+                        "value": "[variables('SessionHostNumberPadding')]"
+                    },
+                    "SessionHostLocation": {
+                        "value": "[variables('SessionHostLocation')]"
+                    },
+                    "SessionHostTags": {
+                        "value": "[variables('SessionHostTags')]"
+                    },
+                    "SessionHostVmSize": {
+                        "value": "[parameters('SessionHostVmSize')]"
+                    },
+                    "SessionHostLocalAdminUsername": {
+                        "value": "[parameters('SessionHostLocalAdminUsername')]"
+                    },
+                    "SessionHostLocalAdminPassword": {
+                        "value": "[parameters('SessionHostLocalAdminPassword')]"
+                    },
+                    "SessionHostOSDiskNameSuffix": {
+                        "value": "[variables('SessionHostOSDiskNameSuffix')]"
+                    },
+                    "SessionHostOSDiskType": {
+                        "value": "[parameters('SessionHostOSDiskType')]"
+                    },
+                    "SessionHostOSDiskSizeGB": {
+                        "value": "[parameters('SessionHostOSDiskSizeGB')]"
+                    },
+                    "SessionHostSourceImageID": {
+                        "value": "[variables('SessionHostSourceImageID')]"
+                    },
+                    "SessionHostEnableIaaSAntimalware": {
+                        "value": "[parameters('SessionHostEnableIaaSAntimalware')]"
+                    },
+                    "SessionHostEnableBitLocker": {
+                        "value": "[parameters('SessionHostEnableBitLocker')]"
+                    },
+                    "SessionHostBitLockerKeyEncryptionAlgorithm": {
+                        "value": "[variables('SessionHostBitLockerKeyEncryptionAlgorithm')]"
+                    },
+                    "BitLockerKeyVaultURL": {
+                        "value": "[variables('BitLockerKeyVaultURL')]"
+                    },
+                    "BitlockerKeyVaultResourceId": {
+                        "value": "[parameters('BitlockerKeyVaultResourceId')]"
+                    },
+                    "DomJoinDomainToJoin": {
+                        "value": "[parameters('DomJoinDomainToJoin')]"
+                    },
+                    "SessionHostUseAvailabilityZones": {
+                        "value": "[variables('SessionHostUseAvailabilityZones')]"
+                    },
+                    "DomJoinOUPath": {
+                        "value": "[parameters('DomJoinOUPath')]"
+                    },
+                    "DomJoinUsername": {
+                        "value": "[parameters('DomJoinUsername')]"
+                    },
+                    "DomJoinPassword": {
+                        "value": "[parameters('DomJoinPassword')]"
+                    },
+                    "NicNamePrefix": {
+                        "value": "[variables('NicNamePrefix')]"
+                    },
+                    "NicNameSuffix": {
+                        "value": "[variables('NicNameSuffix')]"
+                    },
+                    "NicNameNumberSuffix": {
+                        "value": "[variables('NicNameNumberSuffix')]"
+                    },
+                    "NicTags": {
+                        "value": "[variables('NicTags')]"
+                    },
+                    "NicSubnetID": {
+                        "value": "[variables('NicSubnetID')]"
+                    },
+                    "NicEnableAcceleratedNetworking": {
+                        "value": "[variables('NicEnableAcceleratedNetworking')]"
+                    },
+                    "EnableMonitoring": {
+                        "value": "[parameters('EnableMonitoring')]"
+                    },
+                    "LawWorkspaceId": {
+                        "value": "[parameters('LawWorkspaceId')]"
+                    },
+                    "LawPrimaryKey": {
+                        "value": "[parameters('LawPrimaryKey')]"
+                    }
+                }
+            }        
+        }               
+    ],
+    "outputs": {}
+}
