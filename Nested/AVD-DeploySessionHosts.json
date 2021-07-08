@@ -121,14 +121,23 @@
                 "description": "Session host source image ID. This can be a Shared Image Gallery ID or Managed Image ID."
             }
         },
+        "SessionHostEnableBootDiagnostics": {
+            "type": "bool",
+            "defaultValue" : false,
+            "metadata": {
+                "description": "Enable or disable managed boot diagnostics on each session host VM. This will be disabled by default."
+            }
+        },
         "SessionHostEnableIaaSAntimalware": {
             "type": "bool",
+            "defaultValue" : false,
             "metadata": {
                 "description": "Enable IaaSAntimalware extension on each of the Session Hosts. This assumes that GPO (or other method) will configure specific malware settings on the session hosts after deployment."
             }
         },
         "SessionHostEnableBitLocker": {
             "type": "bool",
+            "defaultValue" : false,
             "metadata": {
                 "description": "Enable Bitlocker OS disk encryption on each of the Session Hosts."
             }
@@ -171,6 +180,24 @@
             "type": "string",
             "metadata": {
                 "description": "ID of the KeyVault to store BitLocker recovery data."
+            }
+        },
+        "SessionHostJoinType": {
+            "type": "string",
+            "allowedValues": [
+                "AzureADJoin",
+                "WindowsADJoin"
+            ],
+            "defaultValue": "WindowsADJoin",
+            "metadata": {
+                "description": "Specify if the session host should be joined to a traditional Windows Active Directory (on-premises) domain or if it should be 'Cloud Native' and Azure AD Joined only. For Hybrid Azure AD Joined use WindowsADJoin."
+            }
+        },
+        "SessionHostIntuneEnroll": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Specify if to enrol the Session Host VM into Intune management as part of the AzureADJoin process. This settings does not apply to WindowsADJoin devices where GPO or MEMCM must be used to trigger Intune enrolment."
             }
         },
         "DomJoinDomainToJoin": {
@@ -261,7 +288,11 @@
         // https://www.dcac.com/blog/dynamically-assigning-an-availability-set-to-a-vm-in-an-arm-template
         "AvailabilitySetID": {
             "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]"
-        }
+        },
+
+        // Azure AD Join - True or False
+        "AzureADJoin": "[if(equals(parameters('SessionHostJoinType'),'AzureADJoin'),true(),false())]",        
+        "SessionHostIdentity": "[if(variables('AzureADJoin'),'SystemAssigned','None')]" // SystemAssigned, UserAssigned, SystemAssigned, UserAssigned, None
     },
     "resources": [
         
@@ -325,6 +356,9 @@
                 "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('NicNamePrefix'),parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),parameters('NicNameSuffix'),parameters('NicNameNumberSuffix')))]",                
                 "[resourceId('Microsoft.Compute/availabilitySets', parameters('AvailabilitySetName'))]"
             ],
+            "identity": {
+                "type": "[variables('SessionHostIdentity')]"
+            },
             "properties": {
                 "hardwareProfile": {
                     "vmSize": "[parameters('SessionHostVmSize')]"
@@ -358,7 +392,7 @@
                 },
                 "diagnosticsProfile": {
                     "bootDiagnostics": {
-                        "enabled": false
+                        "enabled": "[parameters('SessionHostEnableBootDiagnostics')]"
                     }
                 },
                 "licenseType": "Windows_Client"
@@ -373,6 +407,7 @@
             "apiVersion": "2019-07-01",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/DomainJoin')]",
             "location": "[parameters('SessionHostLocation')]",
+            "condition": "[equals(parameters('SessionHostJoinType'),'WindowsADJoin')]",
             "dependsOn": ["Session-Host-VM-Loop"],
             "copy": {
                 "name": "Session-Host-DomainJoin-Loop",
@@ -396,13 +431,60 @@
             }                
         },
 
+        // Azure AD Join VMs (Session Hosts) - Cloud Native
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion" : "2020-12-01",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/AzureADJoin')]",
+            "location": "[parameters('SessionHostLocation')]",
+            "condition": "[and(equals(parameters('SessionHostJoinType'),'AzureADJoin'),not(parameters('SessionHostIntuneEnroll')))]",
+            "dependsOn": ["Session-Host-VM-Loop"],
+            "copy": {
+                "name": "Session-Host-AzureADJoin-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "properties": {
+                "publisher": "Microsoft.Azure.ActiveDirectory",
+                "type": "AADLoginForWindows",
+                "typeHandlerVersion": "1.0",
+                "autoUpgradeMinorVersion": true
+            }
+        },
+
+        // Azure AD Join VMs (Session Hosts) and Intune enrolment - Cloud Native with Intune (MEM)
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion" : "2020-12-01",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/AzureADJoinWithIntune')]",
+            "location": "[parameters('SessionHostLocation')]",
+            //"condition": "[equals(parameters('SessionHostJoinType'),'AzureADJoin')]",
+            "condition": "[and(equals(parameters('SessionHostJoinType'),'AzureADJoin'),parameters('SessionHostIntuneEnroll'))]",
+            "dependsOn": ["Session-Host-VM-Loop"],
+            "copy": {
+                "name": "Session-Host-AzureADJoinWithIntune-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },
+            "properties": {
+                "publisher": "Microsoft.Azure.ActiveDirectory",
+                "type": "AADLoginForWindows",
+                "typeHandlerVersion": "1.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "mdmId": "0000000a-0000-0000-c000-000000000000" // Intune
+                }
+            }
+        },
+
         // Register VMs (Session Hosts) to the AVD Service.
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2019-07-01",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/SessionHostRegistration')]",
             "location": "[parameters('SessionHostLocation')]",
-            "dependsOn": ["Session-Host-DomainJoin-Loop"],
+            "dependsOn": [
+                "Session-Host-DomainJoin-Loop",
+                "Session-Host-AzureADJoin-Loop",
+                "Session-Host-AzureADJoinWithIntune-Loop"],
             "copy": {
                 "name": "Session-Host-Registration-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
@@ -417,7 +499,8 @@
                     "configurationFunction": "Configuration.ps1\\AddSessionHost",
                     "properties": {
                         "hostPoolName": "[parameters('HostPoolName')]",
-                        "registrationInfoToken": "[parameters('HostPoolRegistrationToken')]"
+                        "registrationInfoToken": "[parameters('HostPoolRegistrationToken')]",
+                        "aadJoin": "[variables('AzureADJoin')]"
                     }
                 }
             }            
