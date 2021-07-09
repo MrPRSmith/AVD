@@ -313,6 +313,17 @@
                 "description": "Split session hosts across Availability Zones, or configure as an Availability Set. Where Zone is specified, the value of SessionHostsNumberToDeploy must be 2 or more."
             }
         },
+        "SessionHostAvailabilityZoneType": {
+            "type": "string",
+            "allowedValues":[
+                "Fixed",    // All hosts in the same zone
+                "Split"     // Hosts are split round robin style across the zones
+            ],            
+            "defaultValue": "Split",
+            "metadata": {
+                "description": "Deploy all session hosts to the same Availability Zone or split them across all available Zones round robin style."
+            }
+        },
         "SessionHostJoinType": {
             "type": "string",
             "allowedValues": [
@@ -491,6 +502,9 @@
         "SessionHostTags": "[if(empty(parameters('SessionHostImageVersion')),variables('DefaultTagsForAllObjects'),union(variables('DefaultTagsForAllObjects'),createObject('ImageVersion',parameters('SessionHostImageVersion'))))]",
         "SessionHostSourceImageID": "[if(empty(parameters('SessionHostSourceImageID')),concat(variables('SIGResourceID'),'/images/',variables('SIGImageDefinition')),parameters('SessionHostSourceImageID'))]",
         "SessionHostUseAvailabilityZones": "[if(equals(parameters('SessionHostAvailabilityConfiguration'),'AvailabilityZone'),true(),false())]",
+        "SessionHostAvailabilityZonesFixed": "[if(equals(parameters('SessionHostAvailabilityZoneType'),'Fixed'),true(),false())]",
+        "SessionHostAvailabilityZone": 3,
+
 
         // Network
         "NetworkResourceGroupName": "[parameters('SessionHostNetworkResourceGroupName')]",
@@ -775,8 +789,14 @@
                     "DomJoinDomainToJoin": {
                         "value": "[parameters('DomJoinDomainToJoin')]"
                     },
-                    "SessionHostUseAvailabilityZones": {
+                    "SessionHostAvailabilityZonesEnable": {
                         "value": "[variables('SessionHostUseAvailabilityZones')]"
+                    },
+                    "SessionHostAvailabilityZonesFixed": {
+                        "value": "[variables('SessionHostAvailabilityZonesFixed')]"
+                    },
+                    "SessionHostAvailabilityZone": {
+                        "value": "[variables('SessionHostAvailabilityZone')]"
                     },
                     "DomJoinOUPath": {
                         "value": "[parameters('DomJoinOUPath')]"
