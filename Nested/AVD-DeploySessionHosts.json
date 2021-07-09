@@ -154,20 +154,27 @@
                 "description": "Specify the required BitLocker KeyEncryptionAlgorithm to use."
             }
         },
-        "SessionHostUseAvailabilityZones": {
+        "SessionHostAvailabilityZonesEnable": {
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "Specify if to split session host deployment across Availability Zones. Default is to use  Availability Sets and not use Zones."
+                "description": "Specify if to deploy session hosts into an Availability Zone. Default is to use Availability Sets and not use Zones."
             }
         },
-        "SessionHostMaxAvailabilityZones": {
+        "SessionHostAvailabilityZonesFixed": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "When TRUE Specify that all session hosts should be deployed into the same Availability Zone (The Zone is specified using the value of SessionHostAvailabilityZone) or when FALSE (default) deploy evenly, round robin style across all Zones. E.g. if SessionHostAvailabilityZone=3 when deploying 7 session hosts 3-Zone1, 2-Zone2, 2-Zone2 etc."
+            }
+        },
+        "SessionHostAvailabilityZone": {
             "type": "int",
             "defaultValue": 3,
             "minValue": 1,
             "maxValue": 3,            
             "metadata": {
-                "description": "Specify how many Availability Zones to split session hosts over. By default this will be 3."
+                "description": "Specify which Availability Zone to deploy all session hosts into OR split across following a round robin style. By default this will be 3."
             }
         },
         "BitLockerKeyVaultURL": {
@@ -303,7 +310,7 @@
             "name": "[parameters('AvailabilitySetName')]",
             "tags": "[parameters('AvailabilitySetTags')]",
             "location": "[parameters('AvailabilitySetLocation')]",
-            "condition": "[and(greater(parameters('SessionHostsNumberToDeploy'),0),not(parameters('SessionHostUseAvailabilityZones')))]",
+            "condition": "[and(greater(parameters('SessionHostsNumberToDeploy'),0),not(parameters('SessionHostAvailabilityZonesEnable')))]",
             "properties": {
                 "platformFaultDomainCount": 2,
                 "platformUpdateDomainCount": 5
@@ -364,7 +371,7 @@
                     "vmSize": "[parameters('SessionHostVmSize')]"
                 },
                 // Do not associate with an Availability Set if Zones are being used.
-                "availabilitySet": "[if(parameters('SessionHostUseAvailabilityZones'),json('null'),variables('AvailabilitySetID'))]",
+                "availabilitySet": "[if(parameters('SessionHostAvailabilityZonesEnable'),json('null'),variables('AvailabilitySetID'))]",
                 "osProfile": {
                     "computerName": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))]",
                     "adminUsername": "[parameters('SessionHostLocalAdminUsername')]",
@@ -398,7 +405,8 @@
                 "licenseType": "Windows_Client"
             },
             // Only associate with an Availability Zone if specified. By default use an Availability Set.
-            "zones": "[if(parameters('SessionHostUseAvailabilityZones'),if(greaterOrEquals(parameters('SessionHostsNumberToDeploy'),2),array(split(string(add(mod(copyIndex(),parameters('SessionHostMaxAvailabilityZones')),1)), ',')),''),'')]"
+            // Where using Availability Zones, either place all Session Hosts into the same Zone or split evenly across Zones round robin style
+            "zones": "[if(parameters('SessionHostAvailabilityZonesEnable'),if(parameters('SessionHostAvailabilityZonesFixed'),array(parameters('SessionHostAvailabilityZone')),if(greaterOrEquals(parameters('SessionHostsNumberToDeploy'),2),array(split(string(add(mod(copyIndex(),parameters('SessionHostAvailabilityZone')),1)), ',')),'')),'')]"            
         },
 
         // Domain Join VMs (Session Hosts) - Windowws Active Directory Domain Join (on-premises AD).
@@ -452,12 +460,15 @@
         },
 
         // Azure AD Join VMs (Session Hosts) and Intune enrolment - Cloud Native with Intune (MEM)
+        // NOT YET SUPPORTED!!
+        // Enrolment triggered using the device credential - results in MDM Enroll: Failed (Unknown Win32 Error code: 0x80180001)
+        // https://docs.microsoft.com/en-us/windows/client-management/mdm/enroll-a-windows-10-device-automatically-using-group-policy
+        // Device Credential is only supported for Microsoft Intune enrollment in scenarios with Co-management or Azure Virtual Desktop.
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion" : "2020-12-01",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/AzureADJoinWithIntune')]",
             "location": "[parameters('SessionHostLocation')]",
-            //"condition": "[equals(parameters('SessionHostJoinType'),'AzureADJoin')]",
             "condition": "[and(equals(parameters('SessionHostJoinType'),'AzureADJoin'),parameters('SessionHostIntuneEnroll'))]",
             "dependsOn": ["Session-Host-VM-Loop"],
             "copy": {
@@ -470,7 +481,7 @@
                 "typeHandlerVersion": "1.0",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                    "mdmId": "0000000a-0000-0000-c000-000000000000" // Intune
+                    "mdmId": "0000000a-0000-0000-c000-000000000000" // Intune AppID
                 }
             }
         },

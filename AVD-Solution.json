@@ -313,6 +313,24 @@
                 "description": "Split session hosts across Availability Zones, or configure as an Availability Set. Where Zone is specified, the value of SessionHostsNumberToDeploy must be 2 or more."
             }
         },
+        "SessionHostJoinType": {
+            "type": "string",
+            "allowedValues": [
+                "AzureADJoin",
+                "WindowsADJoin"
+            ],
+            "defaultValue": "WindowsADJoin",
+            "metadata": {
+                "description": "Specify if the session host should be joined to a traditional Windows Active Directory (on-premises) domain or if it should be 'Cloud Native' and Azure AD Joined only. For Hybrid Azure AD Joined use WindowsADJoin."
+            }
+        },
+        "SessionHostIntuneEnroll": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Specify if to enrol the Session Host VM into Intune management as part of the AzureADJoin process. This settings does not apply to WindowsADJoin devices where GPO or MEMCM must be used to trigger Intune enrolment."
+            }
+        },                
         "DomJoinDomainToJoin": {
             "type": "string",
             "defaultValue": "",
@@ -747,6 +765,12 @@
                     },
                     "BitlockerKeyVaultResourceId": {
                         "value": "[parameters('BitlockerKeyVaultResourceId')]"
+                    },
+                    "SessionHostJoinType": {
+                        "value": "[parameters('SessionHostJoinType')]"
+                    },
+                    "SessionHostIntuneEnroll": {
+                        "value": "[parameters('SessionHostIntuneEnroll')]"
                     },
                     "DomJoinDomainToJoin": {
                         "value": "[parameters('DomJoinDomainToJoin')]"
