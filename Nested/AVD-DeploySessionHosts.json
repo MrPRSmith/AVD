@@ -84,6 +84,13 @@
                 "description": "Size of the Azure VM that will be the AVD Session Host."
             }
         },
+        "SessionHostVmEnableTrustedLaunch": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable Trusted Launch on the Session Host VM. Trusted launch protects against advanced and persistent attack techniques such as rootkits, boot kits, and kernel-level malware. It provides Secure boot, Virtualisation Based Security, vTPM capabilities and is only supported on Gen2 VMs."
+            }
+        },
         "SessionHostLocalAdminUsername": {
             "type": "securestring",
             "metadata": {
@@ -165,7 +172,7 @@
             "type": "bool",
             "defaultValue": false,
             "metadata": {
-                "description": "When TRUE Specify that all session hosts should be deployed into the same Availability Zone (The Zone is specified using the value of SessionHostAvailabilityZone) or when FALSE (default) deploy evenly, round robin style across all Zones. E.g. if SessionHostAvailabilityZone=3 when deploying 7 session hosts 3-Zone1, 2-Zone2, 2-Zone2 etc."
+                "description": "When SessionHostAvailabilityZonesEnable = TRUE and this value is TRUE Specify that all session hosts should be deployed into the same Availability Zone (The Zone is specified using the value of SessionHostAvailabilityZone) or when FALSE (default) deploy evenly, round robin style across all Availability Zones. E.g. if SessionHostAvailabilityZone=3 when deploying 7 session hosts 3-Zone1, 2-Zone2, 2-Zone2 etc."
             }
         },
         "SessionHostAvailabilityZone": {
@@ -174,7 +181,7 @@
             "minValue": 1,
             "maxValue": 3,            
             "metadata": {
-                "description": "Specify which Availability Zone to deploy all session hosts into OR split across following a round robin style. By default this will be 3."
+                "description": "When SessionHostAvailabilityZonesEnable = TRUE this will Specify which Availability Zone to deploy all session hosts into (SessionHostAvailabilityZonesFixed = TRUE) OR split across following a round robin style (SessionHostAvailabilityZonesFixed = FALSE)."
             }
         },
         "BitLockerKeyVaultURL": {
@@ -297,6 +304,16 @@
             "id": "[resourceId('Microsoft.Compute/availabilitySets/', parameters('AvailabilitySetName'))]"
         },
 
+        // Trusted Launch https://docs.microsoft.com/en-us/azure/virtual-machines/trusted-launch
+        "TrustedLaunch": "[if(parameters('SessionHostVmEnableTrustedLaunch'),variables('TrustedLaunchConfigurationSettings'),'')]",        
+        "TrustedLaunchConfigurationSettings":{
+            "uefiSettings":{
+                "secureBootEnabled": true,
+                "vTpmEnabled": true
+            },
+            "securityType": "TrustedLaunch"
+        },        
+
         // Azure AD Join - True or False
         "AzureADJoin": "[if(equals(parameters('SessionHostJoinType'),'AzureADJoin'),true(),false())]",        
         "SessionHostIdentity": "[if(variables('AzureADJoin'),'SystemAssigned','None')]" // SystemAssigned, UserAssigned, SystemAssigned, UserAssigned, None
@@ -390,6 +407,8 @@
                         "id": "[parameters('SessionHostSourceImageID')]"
                     }
                 },
+                // Trusted Launch 
+                "securityProfile": "[variables('TrustedLaunch')]",                
                 "networkProfile": {
                     "networkInterfaces": [
                         {                                  
