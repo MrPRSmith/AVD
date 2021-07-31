@@ -520,15 +520,15 @@
             "apiVersion": "2019-07-01",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/SessionHostRegistration')]",
             "location": "[parameters('SessionHostLocation')]",
-            //"dependsOn": [
-            //    "Session-Host-DomainJoin-Loop",
-            //    "Session-Host-AzureADJoin-Loop",
-            //    "Session-Host-AzureADJoinWithIntune-Loop"],
-            "dependsOn":[
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'DomainJoin')]",
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoin')]",
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoinWithIntune')]"
-            ],
+            "dependsOn": [
+                "Session-Host-DomainJoin-Loop",
+                "Session-Host-AzureADJoin-Loop",
+                "Session-Host-AzureADJoinWithIntune-Loop"],
+            //"dependsOn":[
+            //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'DomainJoin')]",
+            //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoin')]",
+            //   "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoinWithIntune')]"
+            //],
             "copy": {
                 "name": "Session-Host-Registration-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
@@ -557,10 +557,10 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/MicrosoftMonitoringAgent')]",
             "condition": "[equals(parameters('EnableMonitoring'),true())]",
             "location": "[parameters('SessionHostLocation')]",
-            //"dependsOn": ["Session-Host-Registration-Loop"],
-            "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
-            ],
+            "dependsOn": ["Session-Host-Registration-Loop"],
+            //"dependsOn": [
+            //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
+            //],
             "copy": {
                 "name": "Session-Host-MicrosoftMonitoringAgent-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
@@ -585,10 +585,10 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/IaaSAntimalware')]",
             "apiVersion": "2020-12-01",
             "location": "[parameters('SessionHostLocation')]",
-            //"dependsOn": ["Session-Host-Registration-Loop"],
-            "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
-            ],            
+            "dependsOn": ["Session-Host-Registration-Loop"],
+            //"dependsOn": [
+            //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
+            //],            
             "copy": {
                 "name": "Session-Host-IaaSAntimalware-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
@@ -626,10 +626,10 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/diskEncryption')]",
             "apiVersion": "2020-12-01",
             "location": "[parameters('SessionHostLocation')]",
-            //"dependsOn": ["Session-Host-Registration-Loop"],
-            "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
-            ],            
+            "dependsOn": ["Session-Host-Registration-Loop"],
+            //"dependsOn": [
+            //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
+            //],            
             "copy": {
                 "name": "Session-Host-BitLocker-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
