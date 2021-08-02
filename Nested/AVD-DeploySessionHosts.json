@@ -529,6 +529,7 @@
             //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoin')]",
             //   "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoinWithIntune')]"
             //],
+            //
             "copy": {
                 "name": "Session-Host-Registration-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
