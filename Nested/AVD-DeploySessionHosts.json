@@ -524,17 +524,10 @@
               //  "Session-Host-DomainJoin-Loop",
               //  "Session-Host-AzureADJoin-Loop",
               //  "Session-Host-AzureADJoinWithIntune-Loop",
-                "[extensionResourceId(resourceId('Microsoft.Compute/virtualMachines',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))),'Microsoft.Compute/virtualMachines/extensions','DomainJoin')]",
-                "[extensionResourceId(resourceId('Microsoft.Compute/virtualMachines',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))),'Microsoft.Compute/virtualMachines/extensions','AzureADJoin')]",                
-                "[extensionResourceId(resourceId('Microsoft.Compute/virtualMachines',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'))),'Microsoft.Compute/virtualMachines/extensions','AzureADJoinWithIntune')]"
+                "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'DomainJoin')]",
+                "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoin')]",
+                "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoinWithIntune')]"                
             ],
-                
-            //"dependsOn":[
-            //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'DomainJoin')]",
-            //    "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoin')]",
-            //   "[resourceId('Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoinWithIntune')]"
-            //],
-            //
             "copy": {
                 "name": "Session-Host-Registration-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
