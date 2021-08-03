@@ -312,7 +312,21 @@
                 "vTpmEnabled": true
             },
             "securityType": "TrustedLaunch"
-        },        
+        },      
+        
+        // Configure VM image source to be either a Managed Image or Gallery Image
+        "imageReference": "[variables('imageReferenceConfigurationGalleryImage')]",
+        // Use a Managed Image
+        "imageReferenceConfigurationManagedImage": {
+            "id": "[parameters('SessionHostSourceImageID')]"
+        },
+        // Use a Gallery Image
+        "imageReferenceConfigurationGalleryImage": {
+            "publisher": "MicrosoftWindowsDesktop",
+            "offer": "windows-10",
+            "sku": "21h1-evd-o365pp-g2",
+            "version": "latest"
+        },
 
         // Azure AD Join - True or False
         "AzureADJoin": "[if(equals(parameters('SessionHostJoinType'),'AzureADJoin'),true(),false())]",        
@@ -403,9 +417,7 @@
                         "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),3,'0'),parameters('SessionHostOSDiskNameSuffix'))]",
                         "diskSizeGB": "[parameters('SessionHostOSDiskSizeGB')]"                        
                     },
-                    "imageReference": {
-                        "id": "[parameters('SessionHostSourceImageID')]"
-                    }
+                    "imageReference": "[variables('imageReference')]"
                 },
                 // Trusted Launch 
                 "securityProfile": "[variables('TrustedLaunch')]",                
