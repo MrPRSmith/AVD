@@ -324,7 +324,7 @@
         "imageReferenceConfigurationGalleryImage": {
             "publisher": "MicrosoftWindowsDesktop",
             "offer": "windows-10",
-            "sku": "21h1-evd-g2",
+            "sku": "21h1-ent-g2",
             "version": "latest"
         },
 
