@@ -164,6 +164,13 @@
                 "description": "String containing the custom RDP properties to apply to the AVD host pool."
             }
         },
+        "HostPoolEnableStartVMonConnect": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable Start VM on Connect functionality for this host pool. Defaults to this feature being disabled."
+            }
+        },
         "HostPoolIsValidationEnvironment": {
             "type": "bool",
             "defaultValue": false,
@@ -239,9 +246,9 @@
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "(Optional) Key Vault location to store BitLocker recovery information. Must be specified when SessionHostEnableBitLocker is set to true."
+                "description": "(Optional) Key Vault Resource ID to store BitLocker recovery information. Must be specified when SessionHostEnableBitLocker is set to true."
             }
-        },     
+        },             
         "SessionHostNicSubnetName": {
             "type": "string",
             "defaultValue": "",
@@ -267,14 +274,14 @@
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "The session host local administrator username. This should be a Keyvault reference."
+                "description": "The session host local administrator username. This ideally should be a Key Vault reference."
             }
         },
         "SessionHostLocalAdminPassword": {
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "The session host local administrator password. This should be a Keyvault reference."
+                "description": "The session host local administrator password. This ideally should be a Key Vault reference."
             }
         },
         "SessionHostVmGeneration": {
@@ -360,14 +367,14 @@
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "The domain user account to use when domain joining the session host VM. This should be a Keyvault reference."
+                "description": "The domain user account to use when domain joining the session host VM. This ideally should be a Key Vault reference."
             }
         },
         "DomJoinPassword": {
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "The password for the domain user acount used to join the session host VM to the domain. This should be a Keyvault reference."
+                "description": "The password for the domain user acount used to join the session host VM to the domain. This ideally should be a Key Vault reference."
             }
         },
         "EnableMonitoring": {
@@ -396,7 +403,7 @@
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "Workspace ID of the Log Analytics Workspace to use for monitoring. This should be a Keyvault reference."
+                "description": "Workspace ID of the Log Analytics Workspace to use for monitoring. This ideally should be a Key Vault reference."
             }
         },
 
@@ -404,7 +411,7 @@
             "type": "securestring",
             "defaultValue": "",
             "metadata": {
-                "description": "Primary Key for the Log Analytics Workspace to use for monitoring. This should be a Keyvault reference."
+                "description": "Primary Key for the Log Analytics Workspace to use for monitoring. This ideally should be a Key Vault reference."
             }
         },
 
@@ -446,7 +453,6 @@
     },
     "functions": [],
   "variables": {
-
         // Object Tags - the default tag values if not specified in the parameter file
         "DefaultTags": {
             "Environment": "[toUpper(parameters('AvdEnvironment'))]",
@@ -505,7 +511,6 @@
         "SessionHostAvailabilityZonesFixed": "[if(equals(parameters('SessionHostAvailabilityZoneType'),'Fixed'),true(),false())]",
         "SessionHostAvailabilityZone": 3,
 
-
         // Network
         "NetworkResourceGroupName": "[parameters('SessionHostNetworkResourceGroupName')]",
         "NetworkExistingVnetName": "[parameters('SessionHostVnetName')]",
@@ -530,8 +535,8 @@
         "SIGResourceID": "[resourceId(parameters('SharedImageGalleryResourceGroupName'),'Microsoft.Compute/galleries',variables('SIGName'))]",
 
         // Log Analytics Workspace
-        "LawResourceId": "[resourceId(parameters('LawResourceGroupName'),'microsoft.operationalinsights/workspaces',parameters('LawName'))]",
-       
+        "LawResourceId": "[resourceId(parameters('LawResourceGroupName'),'microsoft.operationalinsights/workspaces',parameters('LawName'))]",  
+
         // BitLocker Settings & Key Vault        
         "SessionHostBitLockerKeyEncryptionAlgorithm": "RSA-OAEP",
         "BitLockerKeyVaultName": "[last(split(parameters('BitlockerKeyVaultResourceId'),'/'))]",
@@ -542,7 +547,7 @@
         // CREATE HOST POOL - If it already exists it will be updated
         {
             "type": "Microsoft.DesktopVirtualization/hostpools",
-            "apiVersion": "2020-10-19-preview",
+            "apiVersion": "2021-01-14-preview",
             "name": "[concat(variables('HostPoolName'))]",
             "location": "[variables('HostPoolLocation')]",
             "tags": "[variables('HostPoolTags')]",
@@ -555,6 +560,7 @@
                 "maxSessionLimit": "[parameters('HostPoolMaxSessionsPerHost')]",
                 "preferredAppGroupType": "Desktop",
                 "validationEnvironment": "[parameters('HostPoolIsValidationEnvironment')]",
+                "startVMOnConnect": "[parameters('HostPoolEnableStartVMonConnect')]",
                 "personalDesktopAssignmentType": "Automatic",
                 "registrationInfo": {
                     "expirationTime": "[dateTimeAdd(parameters('CurrentDateTime'),'P1D')]",
@@ -626,7 +632,6 @@
         {
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2020-06-01",
-            //"name": "[concat('LinkedTemplate-Workspace-',variables('WorkspaceName'))]",
             "name": "[concat('CreateWorkspace-',variables('WorkspaceName'))]",
             "resourceGroup": "[variables('WorkspaceResourceGroup')]",
             "dependsOn":[
@@ -762,6 +767,18 @@
                     "SessionHostOSDiskSizeGB": {
                         "value": "[parameters('SessionHostOSDiskSizeGB')]"
                     },
+                    "SessionHostSourceImageFromGallery": {
+                        "value": false
+                    },
+                    "SessionHostSourceGalleryImagePublisher": {
+                        "value": ""
+                    },
+                    "SessionHostSourceGalleryImageOffer": {
+                        "value": ""
+                    },
+                    "SessionHostSourceGalleryImageSku": {
+                        "value": ""
+                    },
                     "SessionHostSourceImageID": {
                         "value": "[variables('SessionHostSourceImageID')]"
                     },
@@ -785,6 +802,9 @@
                     },
                     "SessionHostIntuneEnroll": {
                         "value": "[parameters('SessionHostIntuneEnroll')]"
+                    },
+                    "SessionHostVmEnableTrustedLaunch": {
+                        "value": false
                     },
                     "DomJoinDomainToJoin": {
                         "value": "[parameters('DomJoinDomainToJoin')]"
