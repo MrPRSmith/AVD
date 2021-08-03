@@ -135,6 +135,27 @@
                 "description": "Session host source image ID. This can be a Shared Image Gallery ID or Managed Image ID."
             }
         },
+        "SessionHostSourceGalleryImagePublisher": {
+            "type": "string",
+            "defaultValue": "MicrosoftWindowsDesktop",
+            "metadata": {
+                "description": "Optional. Only required when SessionHostSourceImageFromGallery is true. The publisher of the image to use e.g. MicrosoftWindowsServer, MicrosoftWindowsDesktop etc. This is the organisation that created the image."
+            }
+        },
+        "SessionHostSourceGalleryImageOffer": {
+            "type": "string",
+            "defaultValue": "windows-10",
+            "metadata": {
+                "description": "Optional. Only required when SessionHostSourceImageFromGallery is true. The Offer of the image to use e.g. WindowsServer, Windows-10 etc. This is the name of a group of related images created by a specific publisher."
+            }
+        },     
+        "SessionHostSourceGalleryImageSku": {
+            "type": "string",
+            "defaultValue": "21h1-evd-g2",
+            "metadata": {
+                "description": "Optional. Only required when SessionHostSourceImageFromGallery is true. The SKU of the image to use e.g. 2019-Datacenter, 20h1-evd etc. This is the instance of a specific offer, such as a major release."
+            }
+        },            
         "SessionHostEnableBootDiagnostics": {
             "type": "bool",
             "defaultValue" : false,
@@ -321,17 +342,17 @@
             "securityType": "TrustedLaunch"
         },      
         
-        // Configure VM image source to be either a Managed Image or Gallery Image
+        // Dynamically configure VM image source to be either a Managed Image or a Gallery Image
         "imageReference": "[if(parameters('SessionHostSourceImageFromGallery'),variables('imageReferenceConfigurationGalleryImage'),variables('imageReferenceConfigurationManagedImage'))]",
         // Use a Managed Image
         "imageReferenceConfigurationManagedImage": {
             "id": "[parameters('SessionHostSourceImageID')]"
         },
-        // Use a Gallery Image - the following will be parameterised after testing
+        // Use a Gallery Image
         "imageReferenceConfigurationGalleryImage": {
-            "publisher": "MicrosoftWindowsDesktop",
-            "offer": "windows-10",
-            "sku": "21h1-evd-g2",
+            "publisher": "[parameters('SessionHostSourceGalleryImagePublisher')]",
+            "offer": "[parameters('SessionHostSourceGalleryImageOffer')]",
+            "sku": "[parameters('SessionHostSourceGalleryImageSku')]",
             "version": "latest"
         },
 
@@ -424,6 +445,7 @@
                         "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),3,'0'),parameters('SessionHostOSDiskNameSuffix'))]",
                         "diskSizeGB": "[parameters('SessionHostOSDiskSizeGB')]"                        
                     },
+                    // Dynamically generate Image reference to be from from Azure Gallery or a Managed Image
                     "imageReference": "[variables('imageReference')]"
                 },
                 // Trusted Launch 
@@ -454,7 +476,6 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/DomainJoin')]",
             "location": "[parameters('SessionHostLocation')]",
             "condition": "[equals(parameters('SessionHostJoinType'),'WindowsADJoin')]",
-            //"dependsOn": ["Session-Host-VM-Loop"],
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')))]"
             ],
@@ -487,7 +508,6 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/AzureADJoin')]",
             "location": "[parameters('SessionHostLocation')]",
             "condition": "[and(equals(parameters('SessionHostJoinType'),'AzureADJoin'),not(parameters('SessionHostIntuneEnroll')))]",
-            //"dependsOn": ["Session-Host-VM-Loop"],
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')))]"
             ],
@@ -504,9 +524,6 @@
         },
 
         // Azure AD Join VMs (Session Hosts) and Intune enrolment - Cloud Native with Intune (MEM)
-        // NOT YET SUPPORTED!!
-        // Enrolment triggered using the device credential - results in MDM Enroll: Failed (Unknown Win32 Error code: 0x80180001)
-        // https://docs.microsoft.com/en-us/windows/client-management/mdm/enroll-a-windows-10-device-automatically-using-group-policy
         // Device Credential is only supported for Microsoft Intune enrollment in scenarios with Co-management or Azure Virtual Desktop.
         {
             "type": "Microsoft.Compute/virtualMachines/extensions",
@@ -514,7 +531,6 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/AzureADJoinWithIntune')]",
             "location": "[parameters('SessionHostLocation')]",
             "condition": "[and(equals(parameters('SessionHostJoinType'),'AzureADJoin'),parameters('SessionHostIntuneEnroll'))]",
-            //"dependsOn": ["Session-Host-VM-Loop"],
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')))]"
             ],            
@@ -540,9 +556,6 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/SessionHostRegistration')]",
             "location": "[parameters('SessionHostLocation')]",
             "dependsOn": [
-              //  "Session-Host-DomainJoin-Loop",
-              //  "Session-Host-AzureADJoin-Loop",
-              //  "Session-Host-AzureADJoinWithIntune-Loop",
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'DomainJoin')]",
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoin')]",
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoinWithIntune')]"                
@@ -575,7 +588,6 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/MicrosoftMonitoringAgent')]",
             "condition": "[equals(parameters('EnableMonitoring'),true())]",
             "location": "[parameters('SessionHostLocation')]",
-            //"dependsOn": ["Session-Host-Registration-Loop"],
             "dependsOn": [
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
             ],
@@ -603,7 +615,6 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/IaaSAntimalware')]",
             "apiVersion": "2020-12-01",
             "location": "[parameters('SessionHostLocation')]",
-            //"dependsOn": ["Session-Host-Registration-Loop"],
             "dependsOn": [
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
             ],            
@@ -644,7 +655,6 @@
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/diskEncryption')]",
             "apiVersion": "2020-12-01",
             "location": "[parameters('SessionHostLocation')]",
-            //"dependsOn": ["Session-Host-Registration-Loop"],
             "dependsOn": [
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
             ],            
