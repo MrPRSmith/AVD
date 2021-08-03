@@ -1,0 +1,150 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "AvdArtifactsLocation": {
+            "value": "https://raw.githubusercontent.com/Azure/RDS-Templates/master/ARM-wvd-templates/DSC/Configuration.zip"
+        },
+        "HostPoolName": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "HostPoolRegistrationToken": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "AvailabilitySetName": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "AvailabilitySetTags": {
+            "value": {}
+        },
+        "AvailabilitySetLocation": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostsNumberToDeploy": {
+            "value": 0 // TODO: Fill in parameter value
+        },
+        "SessionHostNamePrefix": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostNameInitialNumber": {
+            "value": 0 // TODO: Fill in parameter value
+        },
+        "SessionHostNumberPadding": {
+            "value": 0 // TODO: Fill in parameter value
+        },
+        "SessionHostLocation": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostTags": {
+            "value": {}
+        },
+        "SessionHostVmSize": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostVmEnableTrustedLaunch": {
+            "value": false
+        },
+        "SessionHostLocalAdminUsername": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostLocalAdminPassword": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostOSDiskNameSuffix": {
+            "value": "-OSDisk"
+        },
+        "SessionHostOSDiskType": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostOSDiskSizeGB": {
+            "value": 0 // TODO: Fill in parameter value
+        },
+        "SessionHostSourceImageFromGallery": {
+            "value": false
+        },
+        "SessionHostSourceImageID": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostSourceGalleryImagePublisher": {
+            "value": "MicrosoftWindowsDesktop"
+        },
+        "SessionHostSourceGalleryImageOffer": {
+            "value": "windows-10"
+        },
+        "SessionHostSourceGalleryImageSku": {
+            "value": "21h1-evd-g2"
+        },
+        "SessionHostEnableBootDiagnostics": {
+            "value": false
+        },
+        "SessionHostEnableIaaSAntimalware": {
+            "value": false
+        },
+        "SessionHostEnableBitLocker": {
+            "value": false
+        },
+        "SessionHostBitLockerKeyEncryptionAlgorithm": {
+            "value": "RSA-OAEP"
+        },
+        "SessionHostAvailabilityZonesEnable": {
+            "value": false
+        },
+        "SessionHostAvailabilityZonesFixed": {
+            "value": false
+        },
+        "SessionHostAvailabilityZone": {
+            "value": 3
+        },
+        "BitLockerKeyVaultURL": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "BitlockerKeyVaultResourceId": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "SessionHostJoinType": {
+            "value": "WindowsADJoin"
+        },
+        "SessionHostIntuneEnroll": {
+            "value": false
+        },
+        "DomJoinDomainToJoin": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "DomJoinOUPath": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "DomJoinUsername": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "DomJoinPassword": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "NicNamePrefix": {
+            "value": "NIC-"
+        },
+        "NicNameSuffix": {
+            "value": ""
+        },
+        "NicNameNumberSuffix": {
+            "value": ""
+        },
+        "NicTags": {
+            "value": {}
+        },
+        "NicSubnetID": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "NicEnableAcceleratedNetworking": {
+            "value": false // TODO: Fill in parameter value
+        },
+        "EnableMonitoring": {
+            "value": false // TODO: Fill in parameter value
+        },
+        "LawWorkspaceId": {
+            "value": "" // TODO: Fill in parameter value
+        },
+        "LawPrimaryKey": {
+            "value": "" // TODO: Fill in parameter value
+        }
+    }
+}
