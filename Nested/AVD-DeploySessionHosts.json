@@ -119,7 +119,14 @@
         "SessionHostOSDiskSizeGB": {
             "type": "int",
             "metadata": {
-                "description": "Size of each Session Hosts OS disk in GB"
+                "description": "Size of each Session Hosts OS disk in GB."
+            }
+        },
+        "SessionHostSourceImageFromGallery": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Specify if the image source for the Session Host is an Azure Gallery Image (true) a Managed Image (false) or a Shared Image Gallery (also false). Default is false."
             }
         },
         "SessionHostSourceImageID": {
@@ -315,16 +322,16 @@
         },      
         
         // Configure VM image source to be either a Managed Image or Gallery Image
-        "imageReference": "[variables('imageReferenceConfigurationGalleryImage')]",
+        "imageReference": "[if(parameters('SessionHostSourceImageFromGallery'),variables('imageReferenceConfigurationGalleryImage'),variables('imageReferenceConfigurationManagedImage'))]",
         // Use a Managed Image
         "imageReferenceConfigurationManagedImage": {
             "id": "[parameters('SessionHostSourceImageID')]"
         },
-        // Use a Gallery Image
+        // Use a Gallery Image - the following will be parameterised after testing
         "imageReferenceConfigurationGalleryImage": {
             "publisher": "MicrosoftWindowsDesktop",
             "offer": "windows-10",
-            "sku": "20H2-Ent-G2",
+            "sku": "21h1-evd-g2",
             "version": "latest"
         },
 
