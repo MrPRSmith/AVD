@@ -782,6 +782,9 @@
                     "SessionHostSourceImageID": {
                         "value": "[variables('SessionHostSourceImageID')]"
                     },
+                    "SessionHostEnableBootDiagnostics": {
+                        "value": false
+                    },
                     "SessionHostEnableIaaSAntimalware": {
                         "value": "[parameters('SessionHostEnableIaaSAntimalware')]"
                     },
