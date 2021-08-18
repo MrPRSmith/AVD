@@ -163,6 +163,13 @@
                 "description": "Enable or disable managed boot diagnostics on each session host VM. This will be disabled by default."
             }
         },
+        "SessionHostVMOnly": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Build the VM only. Do not register the VM as a Session Host to the AVD service."
+            }
+        },
         "SessionHostEnableIaaSAntimalware": {
             "type": "bool",
             "defaultValue" : false,
@@ -228,11 +235,12 @@
             "type": "string",
             "allowedValues": [
                 "AzureADJoin",
-                "WindowsADJoin"
+                "WindowsADJoin",
+                "StandAlone"
             ],
             "defaultValue": "WindowsADJoin",
             "metadata": {
-                "description": "Specify if the session host should be joined to a traditional Windows Active Directory (on-premises) domain or if it should be 'Cloud Native' and Azure AD Joined only. For Hybrid Azure AD Joined use WindowsADJoin."
+                "description": "Specify if the session host should be joined to a traditional Windows Active Directory (on-premises) domain or if it should be 'Cloud Native' and Azure AD Joined only. For Hybrid Azure AD Joined use WindowsADJoin. For the VM to not be domain joined use 'StandAlone' and it will be deployed as a workgroup VM."
             }
         },
         "SessionHostIntuneEnroll": {
@@ -555,6 +563,7 @@
             "apiVersion": "2019-07-01",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/SessionHostRegistration')]",
             "location": "[parameters('SessionHostLocation')]",
+            "condition": "[not(parameters('SessionHostVMOnly'))]",
             "dependsOn": [
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'DomainJoin')]",
                 "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'AzureADJoin')]",
