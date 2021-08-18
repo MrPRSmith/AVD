@@ -184,6 +184,18 @@
                 "description": "Enable Bitlocker OS disk encryption on each of the Session Hosts."
             }
         },
+        "SessionHostBitLockerVolumeType": {
+            "type": "string",
+            "allowedValues": [
+                "All",
+                "OS",
+                "Data"
+            ],
+            "defaultValue": "All",
+            "metadata": {
+                "description": "Specify which disk volumes should be BitLocker encrypted."
+            }
+        },
         "SessionHostBitLockerKeyEncryptionAlgorithm": {
             "type": "string",
             "allowedValues": [
@@ -682,7 +694,7 @@
                     "KeyEncryptionAlgorithm":"[parameters('SessionHostBitLockerKeyEncryptionAlgorithm')]",
                     "KeyVaultURL": "[parameters('BitLockerKeyVaultURL')]",
                     "KeyVaultResourceId": "[parameters('BitlockerKeyVaultResourceId')]",
-                    "VolumeType": "OS" // All, OS or Data
+                    "VolumeType": "[parameters('SessionHostBitLockerVolumeType')]"
                 }
             }
         }
