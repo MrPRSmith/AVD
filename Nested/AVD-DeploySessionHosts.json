@@ -264,7 +264,7 @@
         },
         "SessionHostCustomScriptExtensionCommand": {
             "type": "string",
-            "defaultValue": "[null()]" ,
+            "defaultValue": "" ,
             "metadata": {
                 "description": "(Optional) The command to execute via the CustomScriptExtension on each Session Host as part of the deployment."
             }
@@ -719,7 +719,7 @@
                 "name": "Session-Host-CustomScriptExtension-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
             },            
-            "condition": "[not(equals(parameters('SessionHostCustomScriptExtensionCommand'),null()))]",
+            "condition": "[not(equals(parameters('SessionHostCustomScriptExtensionCommand'),''))]",
             "properties": {
                 "publisher": "Microsoft.Compute",
                 "type": "CustomScriptExtension",
