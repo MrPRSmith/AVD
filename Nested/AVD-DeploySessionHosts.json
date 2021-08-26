@@ -262,6 +262,13 @@
                 "description": "Specify if to enrol the Session Host VM into Intune management as part of the AzureADJoin process. This settings does not apply to WindowsADJoin devices where GPO or MEMCM must be used to trigger Intune enrolment."
             }
         },
+        "SessionHostCustomScriptExtensionCommand": {
+            "type": "string",
+            "defaultValue": "[null()]" ,
+            "metadata": {
+                "description": "(Optional) The command to execute via the CustomScriptExtension on each Session Host as part of the deployment."
+            }
+        },        
         "DomJoinDomainToJoin": {
             "type": "string",
             "metadata": {
@@ -697,6 +704,34 @@
                     "VolumeType": "[parameters('SessionHostBitLockerVolumeType')]"
                 }
             }
+        },
+
+        {
+            // Trigger custom actions via a script. e.g. Install MEMCM Agent or other tooling.
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/CustomScriptExtension')]",
+            "apiVersion": "2020-12-01",
+            "location": "[parameters('SessionHostLocation')]",
+            "dependsOn": [
+                "[extensionResourceId(resourceGroup().id,'Microsoft.Compute/virtualMachines/extensions',concat(parameters('SessionHostNamePrefix'), padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0')),'SessionHostRegistration')]"
+            ],                  
+            "copy": {
+                "name": "Session-Host-CustomScriptExtension-Loop",
+                "count": "[parameters('SessionHostsNumberToDeploy')]"
+            },            
+            "condition": "[not(equals(parameters('SessionHostCustomScriptExtensionCommand'),null()))]",
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.10",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "timestamp": 20210826   // Change the timestamp if you want the extension to re-run. 
+                },                          // Hard coded so it only runs once!
+                "protectedSettings": {
+                    "commandToExecute": "[parameters('SessionHostCustomScriptExtensionCommand')]"
+                }
+            }              
         }
     ],
     "outputs": {}
