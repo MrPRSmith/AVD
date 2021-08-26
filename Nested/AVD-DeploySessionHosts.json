@@ -715,6 +715,7 @@
 
         {
             // Trigger custom actions via a script. e.g. Install MEMCM Agent or other tooling.
+            // https://docs.microsoft.com/en-us/azure/virtual-machines/extensions/custom-script-windows
             "type": "Microsoft.Compute/virtualMachines/extensions",
             "name": "[concat(parameters('SessionHostNamePrefix'),padLeft(add(copyIndex(),parameters('SessionHostNameInitialNumber')),parameters('SessionHostNumberPadding'),'0'),'/CustomScriptExtension')]",
             "apiVersion": "2020-12-01",
