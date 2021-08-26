@@ -268,7 +268,14 @@
             "metadata": {
                 "description": "(Optional) The command to execute via the CustomScriptExtension on each Session Host as part of the deployment."
             }
-        },        
+        },   
+        "SessionHostCustomScriptExtensionTimestamp": {
+            "type": "string",
+            "defaultValue": "20210826",
+            "metadata": {
+                "description": "A value to set when the CustomScriptExtension is processed. If the value remains the same the command specified via SessionHostCustomScriptExtensionCommand will not be re-run. Only change if you want the command to be executed again."
+            }
+        },     
         "DomJoinDomainToJoin": {
             "type": "string",
             "metadata": {
@@ -726,8 +733,8 @@
                 "typeHandlerVersion": "1.10",
                 "autoUpgradeMinorVersion": true,
                 "settings": {
-                    "timestamp": 20210826   // Change the timestamp if you want the extension to re-run. 
-                },                          // Hard coded so it only runs once!
+                    "timestamp": "[parameters('SessionHostCustomScriptExtensionTimestamp')]"   // Change the timestamp if you want the extension to re-run. 
+                },
                 "protectedSettings": {
                     "commandToExecute": "[parameters('SessionHostCustomScriptExtensionCommand')]"
                 }
