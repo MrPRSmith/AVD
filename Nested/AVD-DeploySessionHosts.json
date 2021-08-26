@@ -719,7 +719,7 @@
                 "name": "Session-Host-CustomScriptExtension-Loop",
                 "count": "[parameters('SessionHostsNumberToDeploy')]"
             },            
-            "condition": "[not(equals(parameters('SessionHostCustomScriptExtensionCommand'),''))]",
+            "condition": "[not(empty(parameters('SessionHostCustomScriptExtensionCommand')))]",
             "properties": {
                 "publisher": "Microsoft.Compute",
                 "type": "CustomScriptExtension",
