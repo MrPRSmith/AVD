@@ -242,6 +242,13 @@
                 "description": "Enable BitLocker OS disk encryption on the session hosts."
             }
         },   
+        "SessionHostVmEnableTrustedLaunch": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Enable TrustedLaunch on each of the Session Hosts. Enabling this functionality requires a Gen2 VM and an OS that supports it."
+            }
+        },
         "BitlockerKeyVaultResourceId": {
             "type": "securestring",
             "defaultValue": "",
@@ -300,6 +307,13 @@
             "defaultValue": "",
             "metadata": {
                 "description": "OPTIONAL. By default a Shared Image Gallery image will be used as the source. Setting an image reference ID here will bypass this process and use this specified image ID to deploy the session hosts."
+            }
+        },
+        "SessionHostMarketplaceImage": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "OPTIONAL. By default a Shared Image Gallery image will be used as the source. Specify the Azure Marketplace image to use as a source in the format publisher,offer,sku. e.g. MicrosoftWindowsDesktop,Windows-10,20h1-evd to override and use the specified Marketplace image as the session host source."
             }
         },
         "SessionHostImageVersion": {
@@ -528,6 +542,13 @@
         "AvailabilitySetName": "[concat('AS-AVD-',parameters('AvdEnvironment'),'-HP',padLeft(parameters('HostPoolNumber'),variables('HostPoolNumberPadding'),'0'),'-',variables('locationShortCode'))]", //e.g. AS-AVD-STAGE-HP01-WE or AS-AVD-PROD-HP01-WE
         "AvailabilitySetLocation": "[variables('Location')]",
         "AvailabilitySetTags": "[variables('DefaultTagsForAllObjects')]",
+
+        // Azure Marketplace Image 
+        "SessionHostSourceImageFromMarketplace": "[if(empty(parameters('SessionHostMarketplaceImage')),false(),true())]",
+        "SessionHostMarketplaceImage": "[if(empty(parameters('SessionHostMarketplaceImage')),'',split(parameters('SessionHostMarketplaceImage'),','))]",
+        "SessionHostMarketplaceImagePublisher": "[if(empty(variables('SessionHostMarketplaceImage')),'',first(variables('SessionHostMarketplaceImage')))]",
+        "SessionHostMarketplaceImageOffer": "[if(empty(variables('SessionHostMarketplaceImage')),'',first(take(skip(variables('SessionHostMarketplaceImage'),1),1)))]",
+        "SessionHostMarketplaceImageSku": "[if(empty(variables('SessionHostMarketplaceImage')),'',last(variables('SessionHostMarketplaceImage')))]",
 
         // Shared Image Gallery                      
         "SIGName": "[if(empty(parameters('SharedImageGalleryName')),concat('SIGAVD'),parameters('SharedImageGalleryName'))]",
@@ -768,16 +789,16 @@
                         "value": "[parameters('SessionHostOSDiskSizeGB')]"
                     },
                     "SessionHostSourceImageFromGallery": {
-                        "value": false
+                        "value": "[variables('SessionHostSourceImageFromMarketplace')]"
                     },
                     "SessionHostSourceGalleryImagePublisher": {
-                        "value": ""
+                        "value": "[variables('SessionHostMarketplaceImagePublisher')]"
                     },
                     "SessionHostSourceGalleryImageOffer": {
-                        "value": ""
+                        "value": "[variables('SessionHostMarketplaceImageOffer')]"
                     },
                     "SessionHostSourceGalleryImageSku": {
-                        "value": ""
+                        "value": "[variables('SessionHostMarketplaceImageSku')]"
                     },
                     "SessionHostSourceImageID": {
                         "value": "[variables('SessionHostSourceImageID')]"
@@ -807,7 +828,7 @@
                         "value": "[parameters('SessionHostIntuneEnroll')]"
                     },
                     "SessionHostVmEnableTrustedLaunch": {
-                        "value": false
+                        "value": "[parameters('SessionHostVmEnableTrustedLaunch')]"
                     },
                     "DomJoinDomainToJoin": {
                         "value": "[parameters('DomJoinDomainToJoin')]"
