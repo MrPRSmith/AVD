@@ -556,7 +556,8 @@
         "SIGResourceID": "[resourceId(parameters('SharedImageGalleryResourceGroupName'),'Microsoft.Compute/galleries',variables('SIGName'))]",
 
         // Log Analytics Workspace
-        "LawResourceId": "[resourceId(parameters('LawResourceGroupName'),'microsoft.operationalinsights/workspaces',parameters('LawName'))]",  
+        "LawResourceId": "[resourceId(parameters('LawResourceGroupName'),'microsoft.operationalinsights/workspaces',parameters('LawName'))]",
+        "DiagnosticsName": "AVDInsights",
 
         // BitLocker Settings & Key Vault        
         "SessionHostBitLockerKeyEncryptionAlgorithm": "RSA-OAEP",
@@ -595,7 +596,7 @@
             // Enable Host Pool Diagnostics (Insights)
             "type": "Microsoft.DesktopVirtualization/hostpools/providers/diagnosticSettings",
             "apiVersion": "2017-05-01-preview",
-            "name": "[concat(variables('HostPoolName'),'/Microsoft.Insights/WVDInsights')]",
+            "name": "[concat(variables('HostPoolName'),'/Microsoft.Insights/',variables('DiagnosticsName'))]",
             "condition": "[equals(parameters('EnableMonitoring'),true())]",                      
             "dependsOn": [
                 "[resourceId('Microsoft.DesktopVirtualization/hostpools', variables('HostPoolName'))]"
@@ -626,6 +627,14 @@
                     {
                         "category": "AgentHealthStatus",
                         "enabled": true
+                    },
+                    {
+                        "category": "NetworkData",
+                        "enabled": true                        
+                    },
+                    {
+                        "category": "SessionHostManagement",
+                        "enabled": true                        
                     }
                 ]
             }
@@ -648,6 +657,34 @@
                 "applicationGroupType": "Desktop"            
             }
         },   
+
+        // Enable Application Group Diagnostics (Insights)
+        {
+            "type": "Microsoft.DesktopVirtualization/applicationgroups/providers/diagnosticSettings",
+            "apiVersion": "2017-05-01-preview",
+            "name": "[concat(variables('ApplicationGroupName'),'/Microsoft.Insights/',variables('DiagnosticsName'))]",            
+            "condition": "[equals(parameters('EnableMonitoring'),true())]",                      
+            "dependsOn": [
+                "[resourceId('Microsoft.DesktopVirtualization/applicationgroups', variables('ApplicationGroupName'))]"                
+            ],              
+            "properties": {
+                "workspaceId": "[variables('LawResourceId')]",
+                "logs": [
+                    {
+                        "category": "Checkpoint",
+                        "enabled": true
+                    },
+                    {
+                        "category": "Error",
+                        "enabled": true
+                    },
+                    {
+                        "category": "Management",
+                        "enabled": true
+                    }
+                ]
+            }   
+        },
 
         // CREATE WORKSPACE - LinkedTemplate (Nested)
         {
@@ -685,7 +722,7 @@
                             // Enable Workspace Diagnostics (Insights)
                             "type": "Microsoft.DesktopVirtualization/workspaces/providers/diagnosticSettings",
                             "apiVersion": "2017-05-01-preview",
-                            "name": "[concat(variables('WorkspaceName'),'/Microsoft.Insights/WVDInsights')]",
+                            "name": "[concat(variables('WorkspaceName'),'/Microsoft.Insights/',variables('DiagnosticsName'))]",
                             "condition": "[equals(parameters('EnableMonitoring'),true())]",
                             "dependsOn": [
                                 "[resourceId(variables('WorkspaceResourceGroup'),'Microsoft.DesktopVirtualization/workspaces', variables('WorkspaceName'))]"                
