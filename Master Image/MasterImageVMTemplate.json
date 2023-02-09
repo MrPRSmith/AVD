@@ -40,7 +40,7 @@
       },
       "minLength": 1
     },
-    "VMName01": {
+    "VMName": {
       "type": "string",
       "metadata": {
         "description": "Specifies the name of the VM."
@@ -60,6 +60,8 @@
     "VirtualMachineSku": {
       "allowedValues": [
         "19h2-evd",
+        "20h2-evd",
+        "22h2-evd",
 		    "2019-Datacenter"
       ],
       "type": "String",
@@ -84,8 +86,8 @@
   "variables": {
     "VNetID": "[resourceId(Parameters('networkResourceGroup'), 'Microsoft.Network/virtualNetworks', Parameters('networkname'))]",
     "VMSubnetRef": "[concat(variables('VNetID'), '/subnets/', Parameters('subnetName'))]",
-    "NicName01": "[concat('NIC-', parameters('VMName01'))]",
-    "VM01OSDiskName": "[concat(parameters('VMName01'),'_OSDisk')]",
+    "NicName01": "[concat('NIC-', parameters('VMName'))]",
+    "VM01OSDiskName": "[concat(parameters('VMName'),'_OSDisk')]",
     "PublisherName": "[if(equals(parameters('VirtualMachineOSType'),'Client'),'MicrosoftWindowsDesktop','MicrosoftWindowsServer')]",
     "Offer": "[if(equals(parameters('VirtualMachineOSType'),'Client'),'windows-10','WindowsServer')]"
   },
@@ -111,7 +113,7 @@
       }
     },
     {
-      "name": "[parameters('VMName01')]",
+      "name": "[parameters('VMName')]",
       "type": "Microsoft.Compute/virtualMachines",
       "location": "[resourceGroup().location]",
       "apiVersion": "2018-06-01",
@@ -124,7 +126,7 @@
           "vmSize": "[parameters('vmsize')]"
         },
         "osProfile": {
-          "computerName": "[parameters('VMName01')]",
+          "computerName": "[parameters('VMName')]",
           "adminUsername": "[parameters('localAdminUsername')]",
           "adminPassword": "[parameters('localAdminPassword')]"
         },
