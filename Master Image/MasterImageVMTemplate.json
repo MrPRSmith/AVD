@@ -1,0 +1,159 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "String",
+      "metadata": {
+        "description": "The Regional Location of the resources you want to be deploying into."
+      }
+    },
+    "localAdminUsername": {
+      "type": "securestring",
+      "metadata": {
+      "description": "Specifies the username for the local administrator account. This should be a KeyVault ID."
+      }
+    },
+    "localAdminPassword": {
+      "type": "SecureString",
+      "metadata": {
+        "description": "Specifies the password for the local administrator account. This should be a KeyVault ID. Password must be between 12-123 characters and have no less than 3 of the following: 1 lower case character, 1 upper case character, 1 number, and 1 special character that is not '\\' or '-'."
+      }
+    },
+    "networkResourceGroup": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the Resource Group of the vNet which the VM will be attached to."
+      }
+    },
+    "networkName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the name of the vNet which the VM will be attached to."
+      },
+      "minLength": 1
+    },
+    "subnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the name of the Subnet which the Virtual Network sits in."
+      },
+      "minLength": 1
+    },
+    "VMName01": {
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the name of the VM."
+      },
+      "minLength": 1
+    },
+    "VirtualMachineOSType": {
+      "allowedValues": [
+        "Client",
+        "Server"
+      ],
+      "type" : "string",
+      "metadata": {
+        "description" : "Specifies if the VM is a client OS (e.g. Windows 10) or Server OS (e.g. Windows Server 2019)"
+      }
+    },
+    "VirtualMachineSku": {
+      "allowedValues": [
+        "19h2-evd",
+		    "2019-Datacenter"
+      ],
+      "type": "String",
+      "metadata": {
+        "description": "Specifies the Windows Version to use as the base image."
+      }
+    },
+    "VMSize": {
+      "type": "string",
+      "defaultValue": "Standard_D2s_v3",
+      "metadata": {
+        "description": "Specifies the size of the virtual machine(s)."
+      }
+    },
+    "Tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Tags to apply to all objects created via this template."
+      }
+    }
+  },
+  "variables": {
+    "VNetID": "[resourceId(Parameters('networkResourceGroup'), 'Microsoft.Network/virtualNetworks', Parameters('networkname'))]",
+    "VMSubnetRef": "[concat(variables('VNetID'), '/subnets/', Parameters('subnetName'))]",
+    "NicName01": "[concat('NIC-', parameters('VMName01'))]",
+    "VM01OSDiskName": "[concat(parameters('VMName01'),'_OSDisk')]",
+    "PublisherName": "[if(equals(parameters('VirtualMachineOSType'),'Client'),'MicrosoftWindowsDesktop','MicrosoftWindowsServer')]",
+    "Offer": "[if(equals(parameters('VirtualMachineOSType'),'Client'),'windows-10','WindowsServer')]"
+  },
+  "resources": [
+    {
+      "name": "[variables('NicName01')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "tags": "[parameters('Tags')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('VMSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('VMName01')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2018-06-01",
+      "tags": "[parameters('Tags')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', variables('NicName01'))]"
+        ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmsize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('VMName01')]",
+          "adminUsername": "[parameters('localAdminUsername')]",
+          "adminPassword": "[parameters('localAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('PublisherName')]",
+            "offer": "[variables('Offer')]",
+            "sku": "[parameters('virtualMachineSKU')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "[variables('VM01OSDiskName')]",
+            "managedDisk": {
+              "storageAccountType": "Premium_LRS"
+            },
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('NicName01'))]"
+            }
+          ]
+        },
+        "licenseType": "Windows_Client"
+      }
+    }
+  ],
+  "outputs": {
+  }
+}

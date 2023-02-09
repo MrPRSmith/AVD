@@ -1,0 +1,314 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {       
+        "SourceVMName": {
+            "type": "string",
+            "allowedValues": [
+                "AVDIMG01",
+                "AVDIMG02",
+                "AVDIMG03"
+                ],
+            "metadata": {
+                "description": "Name of the VM to use as the source"
+                },
+            "minLength": 1
+        },
+        "WVDHostPoolName": {
+            "type": "string",
+            "allowedValues": [
+                "AVD-PROD-HP01",
+                "AVD-PROD-HP02",
+                "AVD-PROD-HP03"
+            ],
+            "metadata": {
+                "description": "The name of the host pool to which this image is associated and will ultimately be deployed to. It is assumed that each host pool has its own image definition in the Shared Image Gallery."
+            }        
+        },
+        "ExecutionMode": {
+            "type": "string",
+            "allowedValues": [
+                "PreSysprep",
+                "AfterSysprep",
+                "AddToSIG",
+                "RecreateVM"
+            ],
+            "metadata": {
+                "description": "Is this template being run before or after the VM has been syspreped? Pre = a Snapshot of the OSDisk will be taken, After = the VM will be captured as an image."
+            }
+        },
+        "SharedImageGalleryName": {
+            "type": "string",            
+            "metadata": {
+                "description": "The name of the Shared Image Gallery. e.g. AzureVirtualDesktop"
+            }
+        },
+        "SourceVMResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Resource Group where the Source VM is located."
+            }
+        },
+        "SharedImageGalleryResourceGroupName": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the Resource Group where the Shared Image Gallery is located."
+            }
+        },        
+        "TestVersion": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "Is this image still in test or development? If true, this version will not be marked as 'latest' when added to the Shared Image Gallery."
+            }
+        },    
+        "EndOfLifeInDays": {
+            "type": "int",
+            "defaultValue": 60,
+            "metadata": {
+                "description": "In how many days should this image version be conidered 'end of life'? Specifying a 0 does not set an EOL date on this image version."
+            }
+        },          
+        "Tags": {
+            "type": "object",
+            "metadata": {
+                "description": "Tags to apply to all objects created via this template."
+            }
+        },
+        "VMSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3",
+            "metadata": {
+                "description": "Specifies the size of the virtual machine(s)."
+            }
+        },        
+        "networkResourceGroup": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifies the Resource Group of the vNet which the VM will be attached to."
+            }
+        },
+        "networkName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifies the name of the vNet which the VM will be attached to."
+            },
+            "minLength": 1
+        },
+        "subnetName": {
+            "type": "string",
+            "metadata": {
+                "description": "Specifies the name of the Subnet which the Virtual Network sits in."
+            },
+            "minLength": 1
+        },        
+        "Date": {
+            "type": "string",
+            "defaultValue": "[utcNow('d')]",
+            "metadata": {
+                "description": "Todays date in ISO 8601 short format YYYY-MM-DD e.g. 2021-01-15. Used to generate names of objects when this template is executed."
+            }
+        }
+    },
+    "functions": [],
+    "variables": {
+        "SnapShotName": "[concat(parameters('SourceVMName'),'_OSDisk-Snapshot-PreSysPrep-',dateTimeAdd(parameters('Date'),'PT0H','yyyy-MM-dd'))]",
+        "SnapShotSourceDiskID": "[concat(resourceGroup().id,'/providers/Microsoft.Compute/disks/',parameters('SourceVMName'),'_OSDisk')]",
+        "SnapShotID": "[concat(substring(resourceGroup().id,0,sub(length(resourceGroup().id),length(resourceGroup().name))),parameters('SourceVMResourceGroupName'),'/providers/Microsoft.Compute/snapshots/',variables('SnapShotName'))]",
+        "ManagedImageName": "[concat(parameters('SourceVMName'),'-ManagedImage-AfterSysPrep-',dateTimeAdd(parameters('Date'),'PT0H','yyyy-MM-dd'))]",
+        "ManagedImageID": "[concat(substring(resourceGroup().id,0,sub(length(resourceGroup().id),length(resourceGroup().name))),parameters('SourceVMResourceGroupName'),'/providers/Microsoft.Compute/images/',variables('ManagedImageName'))]",
+        "VirtualMachineID": "[concat(resourceGroup().id,'/providers/Microsoft.Compute/VirtualMachines/',parameters('SourceVMName'))]",
+        "GalleryID": "[concat(substring(resourceGroup().id,0,sub(length(resourceGroup().id),length(resourceGroup().name))),parameters('SharedImageGalleryResourceGroupName'),'/providers/Microsoft.Compute/galleries/',parameters('SharedImageGalleryName'))]",        
+        "GalleryImageVersionName": "[concat(dateTimeAdd(parameters('Date'),'PT0H','yyyy.MM.dd'))]",
+        "GalleryImageDefinitionName": "[concat('IMG-SIG-',variables('HostPoolEnvironment'),'-WVD-',variables('HostPoolNumber'))]",
+        "ImageVersionEndOfLifeDate": "[if(equals(parameters('EndOfLifeInDays'),0),'',dateTimeAdd(parameters('Date'),concat('P',parameters('EndOfLifeInDays'),'D'),'d'))]",        
+        "HostPoolEnvironment": "[substring(parameters('WVDHostPoolName'),add(indexOf(parameters('WVDHostPoolName'),'-'),1),sub(sub(length(parameters('WVDHostPoolName')),lastIndexOf(parameters('WVDHostPoolName'),'-')),1))]",
+        "HostPoolNumber": "[substring(parameters('WVDHostPoolName'),add(lastIndexOf(parameters('WVDHostPoolName'),'-'),1),sub(sub(length(parameters('WVDHostPoolName')),lastIndexOf(parameters('WVDHostPoolName'),'-')),1))]",                
+        "OSDiskName": "[concat(parameters('SourceVMName'),'_OSDisk')]",
+        "VNetID": "[resourceId(Parameters('networkResourceGroup'), 'Microsoft.Network/virtualNetworks', Parameters('networkname'))]",
+        "VMSubnetRef": "[concat(variables('VNetID'), '/subnets/', Parameters('subnetName'))]",
+        "NicName": "[concat('NIC-', parameters('SourceVMName'))]"
+    },
+    "resources": [
+        {
+            "name": "[variables('SnapShotName')]",
+            "condition": "[equals(parameters('ExecutionMode'),'PreSysprep')]",
+            "type": "Microsoft.Compute/snapshots",
+            "apiVersion": "2019-07-01",
+            "location": "[resourceGroup().location]",
+            "tags" : "[parameters('Tags')]",
+            "properties": {
+                "creationData": {
+                    "createOption": "Copy",
+                    "sourceResourceId": "[variables('SnapShotSourceDiskID')]"
+                },               
+                "incremental": false
+            }
+        },
+        {            
+            "name": "[variables('ManagedImageName')]",
+            "condition": "[equals(parameters('ExecutionMode'),'AfterSysprep')]",
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "2019-07-01",
+            "location": "[resourceGroup().location]",
+            "tags" : "[parameters('Tags')]",
+            "properties": {
+                "sourceVirtualMachine": {
+                    "id": "[variables('VirtualMachineID')]"
+                },
+                "storageProfile": {
+                    "zoneResilient": false
+                }
+            }
+        },
+        {
+            "name": "[concat(parameters('SharedImageGalleryName'),'/',variables('GalleryImageDefinitionName'),'/',variables('GalleryImageVersionName'))]",            
+            "condition": "[equals(parameters('ExecutionMode'),'AddToSIG')]",
+            "type": "Microsoft.Compute/galleries/images/versions",
+            "apiVersion": "2019-03-01",
+            "location":"[resourceGroup().location]",
+            "tags": "[parameters('Tags')]",
+            "properties": {
+                "publishingProfile": {
+                    "replicaCount": 1,
+                    "targetRegions": [
+                        {
+                            "name": "WestEurope"
+                        }
+                    ],
+                "source": {
+                    "managedImage": {
+                        "id": "[variables('ManagedImageID')]"
+                    }
+                },
+                "excludeFromLatest": "[parameters('TestVersion')]",
+                "endOfLifeDate": "[variables('ImageVersionEndOfLifeDate')]"
+                }
+            }
+        },
+        {
+            "name": "[variables('NicName')]",
+            "condition": "[equals(parameters('ExecutionMode'),'RecreateVM')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-06-15",
+            "tags": "[parameters('Tags')]",
+            "properties": {
+                "ipConfigurations": [
+                {
+                    "name": "ipconfig1",
+                    "properties": {
+                        "privateIPAllocationMethod": "Dynamic",
+                        "subnet": {
+                            "id": "[variables('VMSubnetRef')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+
+        {
+            "name":"[variables('OSDiskName')]",
+            "condition": "[equals(parameters('ExecutionMode'),'RecreateVM')]",
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2019-07-01",            
+            "location": "[resourceGroup().location]",
+            "tags": "[parameters('Tags')]",
+            "properties": {
+                "creationData": {
+                    "createOption": "copy",
+                    "sourceResourceId": "[variables('SnapShotID')]"
+                }
+            },
+            "sku": {
+                "name": "Premium_LRS"
+            }
+        },
+
+        {
+            "name": "[parameters('SourceVMName')]",
+            "condition": "[equals(parameters('ExecutionMode'),'RecreateVM')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "location": "[resourceGroup().location]",
+            "tags": "[parameters('Tags')]",
+            "apiVersion": "2018-06-01",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/', variables('NicName'))]",
+                "[resourceId('Microsoft.Compute/disks', variables('OSDiskName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmsize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Windows",
+                        "createOption": "Attach",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "id":"[resourceId('Microsoft.Compute/disks', variables('OSDiskName'))]"
+                        }
+                    }
+            },
+            "networkProfile": {
+                "networkInterfaces": [
+                    {
+                        "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('NicName'))]"
+                    }
+                ]
+            }
+        }
+    }
+    ],
+    "outputs": {
+        "OSDiskName": {
+            "type": "string",
+            "value": "[variables('OSDiskName')]"
+        },
+        "SnapShotName": {
+            "type": "string",
+            "value": "[variables('SnapShotName')]"
+        },
+        "SnapShotID": {
+            "type": "string",
+            "value": "[variables('SnapShotID')]"
+        },        
+        "SnapShotSourceDiskID": {
+            "type": "string",
+            "value": "[variables('SnapShotSourceDiskID')]"
+        },
+        "ManagedImageName": {
+            "type": "string",
+            "value": "[variables('ManagedImageName')]"
+        },
+        "ManagedImageID": {
+            "type": "string",
+            "value": "[variables('ManagedImageID')]"
+        },
+        "VirtualMachineID": {
+            "type": "string",
+            "value": "[variables('VirtualMachineID')]"
+        },
+        "EndOfLifeDate": {
+            "type": "string",
+            "value": "[variables('ImageVersionEndOfLifeDate')]"
+        },
+        "GalleryImageVersionName": {
+            "type": "string",
+            "value": "[variables('GalleryImageVersionName')]"
+        },
+        "GalleryImageDefinitionName": {
+            "type": "string",
+            "value": "[variables('GalleryImageDefinitionName')]"
+        }, 
+        "GalleryID": {
+            "type": "string",
+            "value": "[variables('GalleryID')]"
+        },
+        "HostPoolEnvironment": {
+            "type": "string",
+            "value": "[variables('HostPoolEnvironment')]"
+        }        
+    }
+}
