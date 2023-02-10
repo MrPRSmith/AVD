@@ -11,8 +11,8 @@ Once the initial Master Image VMs have been created, the following can be used t
 `New-AzResourceGroupDeployment -TemplateFile .\CaptureMasterImage.json -TemplateParameterFile .\CaptureMasterImage-AVD-PROD-HP01.parameters.json -ResourceGroupName RG-AVD-IMAGE-NE -ExecutionMode PreSysprep` 
 
 ## Set VM to be Generalised
-`Stop-AzVM -Name VMNAME -ResourceGroupName RG-AVD-IMAGE-NE` 
-`Set-AzVM -ResourceGroupName RG-AVD-IMAGE-NE -Name VMNAME -Generalized` 
+`Stop-AzVM -Name VMNAME -ResourceGroupName RG-AVD-IMAGE-NE`  
+`Set-AzVM -ResourceGroupName RG-AVD-IMAGE-NE -Name VMNAME -Generalized`  
 
 ## Create a Managed Image
 `New-AzResourceGroupDeployment -TemplateFile .\CaptureMasterImage.json -TemplateParameterFile .\CaptureMasterImage-AVD-PROD-HP01.parameters.json -ResourceGroupName RG-AVD-IMAGE-NE -ExecutionMode AfterSysprep` 
@@ -96,10 +96,10 @@ The following are useful AVD image SKUs:
 ## Identifying SKUs
 The following example PowerShell can be used to identify the SKUs
 
-`$locName="North Europe"`
-`$pubName="MicrosoftWindowsDesktop"`
-`$offerName="windows-11"`
-`Get-AzVMImageSku -Location $locName -PublisherName $pubName -Offer $offerName | Select Skus`
+`$locName="North Europe"`  
+`$pubName="MicrosoftWindowsDesktop"`  
+`$offerName="windows-11"`  
+`Get-AzVMImageSku -Location $locName -PublisherName $pubName -Offer $offerName | Select Skus`  
 
 ### Publisher
 - MicrosoftWindowsDesktop
