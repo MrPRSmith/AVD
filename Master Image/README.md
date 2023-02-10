@@ -65,8 +65,26 @@ The following are useful AVD image SKUs:
 - win10-22h2-ent
 - win10-22h2-ent-g2
 
-## Server OS
+## With M365 Apps
+- 1903-evd-o365pp
+- 19h2-evd-o365pp
+- 19h2-evd-o365pp-g2
+- 20h1-evd-o365pp
+- 20h1-evd-o365pp-g2
+- 20h2-evd-o365pp
+- 20h2-evd-o365pp-g2
+- 21h1-evd-o365pp
+- 21h1-evd-o365pp-g2
+- rs5-evd-o365pp
+- rs5-evd-o365pp-g2
+- win10-21h2-avd-m365
+- win10-21h2-avd-m365-g2
+- win10-22h2-avd-m365
+- win10-22h2-avd-m365-g2
+- win11-21h2-avd-m365
+- win11-22h2-avd-m365
 
+## Server OS
 - 2012-R2-Datacenter
 - 2012-r2-datacenter-gensecond
 - 2016-Datacenter
@@ -77,9 +95,21 @@ The following are useful AVD image SKUs:
 - 2022-datacenter-g2
 
 ## Identifying SKUs
-The following example PowerShell can identify the SKUs
+The following example PowerShell can be used to identify the SKUs
 
-$locName="North Europe"
+`$locName="North Europe"
 $pubName="MicrosoftWindowsDesktop"
 $offerName="windows-11"
-Get-AzVMImageSku -Location $locName -PublisherName $pubName -Offer $offerName | Select Skus
+Get-AzVMImageSku -Location $locName -PublisherName $pubName -Offer $offerName | Select Skus`
+
+### Publisher
+- MicrosoftWindowsDesktop
+- MicrosoftWindowsServer
+
+### Offer
+- windows-10
+- windows-11
+- office-365
+- WindowsServer
+
+
