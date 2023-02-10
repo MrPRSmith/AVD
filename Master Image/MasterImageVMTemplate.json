@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
     "location": {
@@ -52,18 +52,63 @@
         "Client",
         "Server"
       ],
+      "defaultValue": "Client",
       "type" : "string",
       "metadata": {
         "description" : "Specifies if the VM is a client OS (e.g. Windows 10) or Server OS (e.g. Windows Server 2019)"
       }
     },
+    "VirtualMachineOffer": {
+      "allowedValues": [
+        "windows-10",
+        "windows-11",
+        "office-365",
+        "WindowsServer"
+      ],
+      "defaultValue": "windows-11",
+      "type": "string",
+      "metadata": {
+        "description": "Specifies the Offer of the source image to use."
+      }
+    },
     "VirtualMachineSku": {
       "allowedValues": [
-        "19h2-evd",
+        "20h2-ent",
+        "20h2-ent-g2",
         "20h2-evd",
-        "22h2-evd",
-		    "2019-Datacenter"
+        "20h2-evd-g2",
+        "win10-21h2-avd",
+        "win10-21h2-avd-g2",
+        "win10-21h2-ent",
+        "win10-21h2-ent-g2",
+        "win10-22h2-avd",
+        "win10-22h2-avd-g2",
+        "win10-22h2-ent",
+        "win10-22h2-ent-g2",
+        "win11-21h2-avd",
+        "win11-21h2-ent",
+        "win11-22h2-avd",
+        "win11-22h2-ent",
+        "20h2-evd-o365pp",
+        "20h2-evd-o365pp-g2",
+        "21h1-evd-o365pp",
+        "21h1-evd-o365pp-g2",
+        "win10-21h2-avd-m365",
+        "win10-21h2-avd-m365-g2",
+        "win10-22h2-avd-m365",
+        "win10-22h2-avd-m365-g2",
+        "win11-21h2-avd-m365",
+        "win11-22h2-avd-m365",
+        "2012-R2-Datacenter",
+        "2012-r2-datacenter-gensecond",
+        "2016-Datacenter",
+        "2016-datacenter-gensecond",
+        "2019-Datacenter",
+        "2019-datacenter-core-g2",
+        "2022-datacenter",
+        "2022-datacenter-g2"
       ],
+      "defaultValue": "win11-22h2-ent",
       "type": "String",
       "metadata": {
         "description": "Specifies the Windows Version to use as the base image."
@@ -86,10 +131,10 @@
   "variables": {
     "VNetID": "[resourceId(Parameters('networkResourceGroup'), 'Microsoft.Network/virtualNetworks', Parameters('networkname'))]",
     "VMSubnetRef": "[concat(variables('VNetID'), '/subnets/', Parameters('subnetName'))]",
-    "NicName01": "[concat('NIC-', parameters('VMName'))]",
-    "VM01OSDiskName": "[concat(parameters('VMName'),'_OSDisk')]",
+    "NicName01": "[concat(parameters('VMName'),'-NIC01')]",
+    "VM01OSDiskName": "[concat(parameters('VMName'),'-OSDisk')]",
     "PublisherName": "[if(equals(parameters('VirtualMachineOSType'),'Client'),'MicrosoftWindowsDesktop','MicrosoftWindowsServer')]",
-    "Offer": "[if(equals(parameters('VirtualMachineOSType'),'Client'),'windows-10','WindowsServer')]"
+    "Offer": "[parameters('VirtualMachineOffer')]"
   },
   "resources": [
     {

@@ -90,7 +90,7 @@ The following are useful AVD image SKUs:
 - 2016-Datacenter
 - 2016-datacenter-gensecond
 - 2019-Datacenter
-- 2019-datacenter-core-g2
+- 2019-datacenter-gensecond
 - 2022-datacenter
 - 2022-datacenter-g2
 
