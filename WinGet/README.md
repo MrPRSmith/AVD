@@ -31,6 +31,7 @@ Simply type the name of the app your looking for. e.g.
 - winget install -e --id Microsoft.VisualStudioCode --scope machine
 
 ### Issues
+Some apps do not support machine scope installs or multisesson OSes
 - winget install -e --id Discord.Discord --scope machine 
 - winget install -e --id 9WZDNCRFJ3PZ --scope machine
 
@@ -41,8 +42,9 @@ winget export -o FILNAME.JSON --accept-source-agreements --include-versions
 winget import -i FILNAME.JSON --accept-package-agreements --accept-source-agreements --ignore-versions --ignore-unavailable
 
 # Known Issues
-Below are some of the issues encountered when using WinGet for AVD
+Below are some of the issues encountered when using WinGet for AVD based sccenarios
 
 ### Machine Scope
 **Check the app suppports the machine scope flag and check it performs as expected.** When the machine scope is specified for an application, WinGet attempts to pass any flags needed to make the install machine-wide to the installer. It is up to the installer provided by the publisher of the software to do the "right thing" and add the start menu entries and shortcuts - that isn't something winget has control over. Additionally, some installers claim to install for all users but then end up only installing to a single user - despite writing their registry entries to say the install was "machine-wide".
-**winget import and export functions do not include a method to specify scope.** 
+
+**The winget 'import' and 'export' functions do not include a method to specify scope.** When installing an app via command line as per the examples above, it is possible to specify machine scope which is essencial for a multi-session AVD environment. In testing with Windows 11 22H2 and WinGet version v1.5.1881 it is not possible to specify scope and apps will default to per-user installs.
