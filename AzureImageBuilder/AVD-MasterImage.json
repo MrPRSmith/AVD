@@ -1,0 +1,557 @@
+// Created by Paul Smith
+//
+//  Date: 22-06-2021
+//  Ver:  2.0
+// 
+// References:
+// https://docs.microsoft.com/en-us/azure/virtual-machines/image-builder-overview
+// https://docs.microsoft.com/en-us/azure/virtual-machines/linux/image-builder-json
+// https://github.com/danielsollondon/azvmimagebuilder
+//
+
+{  
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "AzureImageBuilderTemplateName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name to use for the Azure Image Builder template that will be created. e.g. AIB-AVD-HostPool-01"
+            }
+        },
+        "api-version": {
+            "type": "string",
+            "allowedValues": [
+                "2020-02-14",
+                "2019-05-01-preview"
+            ],            
+            "defaultValue": "2020-02-14",
+            "metadata": {
+                "description": "Specify the Azure Image Builder API version to use. e.g. 2020-02-14 or 2019-05-01-preview"                
+            }
+            // 2019-05-01-preview does not support the specifying of a subnet for the VM see AzureImageBuilderVmSubnetName
+        },
+        "Subscription": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Specify the Azure subscription ID to use."
+            }
+        },        
+        "AzureFilesUNCPath": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) Path to the Azure files share where content required for customising the build process is located. e.g. the PowerShell script specified as MasterImageBuildScript1."
+            }
+            // the \ character must be 'escaped' e.g. 4 x backward slashes rather than 2 \\\\ or 2 instead of 1 \\
+            // e.g. \\\\storageaccountname.file.core.windows.net\\sharename
+
+            // NOTE: It is not recommended to include credentials in a template as it will be visible in clear text in the image template definition          
+            // Recommended to use ImageBuildScriptUri to download a PowerShell script that contains the code and credentials to map a drive to the desired Azure Files share. Ensure that 
+            // AzureImageBuilderIdentity has the Storage Blob Data Reader role on the storage account hosting the ImageBuildScriptUri and it is not publically accessible.
+        },
+        "AzureFilesDriveMapUsername": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) The user account to use when connecting to the AzureFilesUNCPath."
+            }
+            // the \ character must be 'escaped' e.g. 2 instead of 1 \\
+            // e.g. Azure\\UserName
+
+            // NOTE: It is not recommended to include credentials in a template as it will be visible in clear text in the image template definition          
+            // Recommended to use ImageBuildScriptUri to download a PowerShell script that contains the code and credentials to map a drive to the desired Azure Files share. Ensure that 
+            // AzureImageBuilderIdentity has the Storage Blob Data Reader role on the storage account hosting the ImageBuildScriptUri and it is not publically accessible.
+        }, 
+        "AzureFilesDriveMapPassword": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) The password for the DriveMapUsername User account to use when connecting to the AzureFilesUNCPath."
+            }
+            // NOTE: It is not recommended to include credentials in a template as it will be visible in clear text in the image template definition          
+            // Recommended to use ImageBuildScriptUri to download a PowerShell script that contains the code and credentials to map a drive to the desired Azure Files share. Ensure that 
+            // AzureImageBuilderIdentity has the Storage Blob Data Reader role on the storage account hosting the ImageBuildScriptUri and it is not publically accessible.
+        },
+        "ImageBuildScript1Uri": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The URI to a PowerShell script that will map a network drive to so that the AzureFilesUNCPath, AzureFilesDriveMapUsername and AzureFilesDriveMapPassword are not specified in the template"
+            }
+        },              
+        "ImageBuildScript1": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the main (1st) PowerShell script in the root of AzureFilesUNCPath to run that will configure and customise the build process. e.g. WVD-HostPool-01.ps1"
+            }
+            // PowerShell Script to call e.g. WVD-HostPool-01.ps1 or Do-Nothing.ps1 etc.
+        },
+        "ImageBuildScript2Uri": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The URI to a PowerShell script that will map a network drive to so that the AzureFilesUNCPath, AzureFilesDriveMapUsername and AzureFilesDriveMapPassword are not specified in the template"
+            }
+        },           
+        "ImageBuildScript2": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the 2nd  PowerShell script in the root of AzureFilesUNCPath to run that will configure and customise the build process. e.g. WVD-HostPool-01.ps1"
+            }
+            // PowerShell Script to call e.g. WVD-HostPool-01.ps1 or Do-Nothing.ps1 etc.
+        },        
+        "ManagedImageOutputResourceGroupName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the Resource Group to output (save) the Managed Image to once its created."
+            }
+        },
+        "ManagedImageOutputNamePrefix": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) The prefix to use for the name of the Managed Image once its created. e.g. WVD-WIN10-2004-MS. Defaults to using AzureImageBuilderTemplateName."
+            }
+        },        
+        "sharedImageGalleryName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the Shared Image Gallery to save the image to. e.g. WindowsVirtualDesktop"
+            }
+        },
+        "SharedImageGalleryResourceGroupName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the Resource Group where the sharedImageGalleryName is located. e.g. RG-AVD-CORE-NE"
+            }
+        },                
+        "SharedImageGalleryReplicationRegions": {
+            "type": "array",
+            "defaultValue": [""],
+            "metadata": {
+                "description": "An array of the Azure Regions that the Shared Image Gallery should be replicated. One of the regions must be the region where the Gallery is deployed."
+            }
+        },
+        "SharedImageGalleryImageDefName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the Image Definition within the sharedImageGalleryName for the new Shared Image version to be added. e.g. HostPool-01"
+            }
+        },        
+        "SharedImageGalleryExplicitVersioning": {
+            "type": "bool",
+            "defaultValue": false,
+            "metadata": {
+                "description": "When adding the image to the ShareImageGallery, if FALSE Azure Image Builder will automatically generate a monotonic version number. If TRUE the values specified for Year, Month and Day will be used."
+            }
+            // Automatic versioning is useful when you want to keep rebuilding images from the same template, without recreating (updating) the template each time
+        },
+        "AzureImageBuilderSvcLocation": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Specify the Azure region to use. e.g. NorthEurope. This is where Azure Image Builder will run to create the custom image."
+            }
+        },
+        "AzureImageBuilderIdentity": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The name of the Azure Managed Identity that Azure Image builder should use. e.g. aibIdentity"
+            }
+        },
+        "AzureImageBuilderIdentityRG": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "The Resource Group containing the Azure Image Builder Managed Identity"
+            }
+        },
+        "AzureImageBuilderVmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D2s_v3",
+            "metadata": {
+                "description": "The size of the VM Image builder should use when creating the image. e.g. Standard_D2s_v3."
+            }
+        },
+        "AzureImageBuilderVmosDiskSizeGB": {
+            "type": "int",
+            "defaultValue": 127,
+            "metadata": {
+                "description": "The size in GB the OS disk should be for the Image builder VM e.g. 127."
+            }
+        },
+        "AzureImageBuilderVmImagePublisher": {
+            "type": "string",
+            "defaultValue": "MicrosoftWindowsDesktop",
+            "metadata": {
+                "description": "The publisher of the image to use for the Image Builder VM. e.g. MicrosoftWindowsServer, MicrosoftWindowsDesktop etc. This is the organisation that created the image."
+            }
+            // See https://docs.microsoft.com/en-us/rest/api/compute/virtualmachineimages
+            // We can use PowerShell to get a listing of publishers for a specific region e.g.
+            // Get-AzVMImagePublisher -Location NorthEurope | Select PublisherName | Where-Object { $_.PublisherName -like '*Windows*' }
+        },
+        "AzureImageBuilderVmImageOffer": {
+            "type": "string",
+            "defaultValue": "windows-10",
+            "metadata": {
+                "description": "The Offer of the image to use for the Image Builder VM. e.g. WindowsServer, Windows-10 etc. This is the name of a group of related images created by a specific publisher."
+            }
+            // See https://docs.microsoft.com/en-us/rest/api/compute/virtualmachineimages
+            // We can use PowerShell to get a listing of offers for a specific publisher in a given region e.g.
+            // Get-AzVMImageOffer -Location NorthEurope -PublisherName MicrosoftWindowsDesktop | Select Offer
+
+        },
+        "AzureImageBuilderVmImageSKU": {
+            "type": "string",
+            "defaultValue": "20h1-evd",
+            "metadata": {
+                "description": "The SKU of the image to use for the Image Builder VM. e.g. 2019-Datacenter, 20h1-evd etc. This is the instance of a specific offer, such as a major release."
+            }
+            // See https://docs.microsoft.com/en-us/rest/api/compute/virtualmachineimages
+            // We can use PowerShell to get a listing of SKUs for a specific offer and publisher in a given region e.g.
+            // Get-AzVMImageSku -Location NorthEurope -PublisherName MicrosoftWindowsDesktop -Offer windows-10 | Select Skus
+        },
+        "AzureImageBuilderVmbuildTimeoutInMinutes": {
+            "type": "int",
+            "defaultValue": 120,
+            "metadata": {
+                "description": "The length of time (in minutes) within which Azure Image Builder should have completed the build process before it is forcibly stopped. e.g. 100."
+            }
+            // By default, Image Builder will run for 240 minutes. After that, it will timeout and stop, whether or not the image build is complete.
+            // We can specify a maximum runtime of up to 960 minutes (16hrs).
+        },                   
+        "AzureImageBuilderVmSubnetName": {            
+            "type": "string",            
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) The name of the Subnet that the Azure Image Builder VM should be connected to. e.g. WVD-IMAGE-BUILD"
+            }
+            // By specifying a subnet, Image Builder will spin up a temporary proxy VM during the build process to provide network 
+            // connectivity to the specified network during the build process. e.g. so the VM can access any on-premises resources etc.
+            // See https://github.com/danielsollondon/azvmimagebuilder/blob/master/aibNetworking.md#networking-with-azure-vm-image-builder
+        },        
+        "AzureImageBuilderVmVnetName": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) The vNet that the Subnet specified in AzureImageBuilderVmSubnetName is located. e.g.vnet-NorthEurope."
+            }
+        },
+        "AzureImageBuilderVmVnetResourceGroup": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "(Optional) The Resource group containing the vNet that the Subnet specified in AzureImageBuilderVmSubnetName is located. e.g. RG-Networks-NorthEurope."
+            }
+        },
+        "DistributeMethod": {
+            "type": "string",
+            "allowedValues": [
+                "ManagedImage",
+                "SharedImage",
+                "VHD"
+            ],
+            "defaultValue": "ManagedImage",            
+            "metadata": {
+                "description": "Where to save (distribute) the Master Image once created. e.g. Store as a ManagedImage, add to a SharedImageGallery or as a VHD."
+            }
+        },        
+        "Year": {
+            "type": "string",
+            "defaultValue": "[utcNow('yyyy')]",
+            "metadata": {
+                "description": "The current year in yyyy format e.g. 2020. Specified here as the utcNow function can only be used for the default value of a parameter."
+            }            
+        },        
+        "Month": {
+            "type": "string",
+            "defaultValue": "[utcNow('MM')]",
+            "metadata": {
+                "description": "The current month in MM format e.g. 09 for September. Specified here as the utcNow function can only be used for the default value of a parameter."
+            }            
+        },
+        "Day": {
+            "type": "string",
+            "defaultValue": "[utcNow('dd')]",
+            "metadata": {
+                "description": "The day of the month in dd format e.g. 23. Specified here as the utcNow function can only be used for the default value of a parameter."
+            }            
+        }        
+    },
+    
+    "variables": {
+
+        "ManagedImageName":"[if(not(empty(parameters('ManagedImageOutputNamePrefix'))),concat(parameters('ManagedImageOutputNamePrefix'),'-',parameters('Year'),'-',parameters('Month'),'-',parameters('Day')),concat('IMG-',parameters('AzureImageBuilderTemplateName')))]",
+        "ManagedImageId":"[concat('/subscriptions/',parameters('Subscription'),'/resourceGroups/',parameters('ManagedImageOutputResourceGroupName'),'/providers/Microsoft.Compute/images/',variables('ManagedImageName'))]",
+        "SharedImageGalleryImageVersion":"[concat(parameters('Year'),'.',parameters('Month'),'.',parameters('Day'))]",       
+        "SharedImageGalleryID":"[if(parameters('SharedImageGalleryExplicitVersioning'),concat('/subscriptions/',parameters('Subscription'),'/resourceGroups/',parameters('SharedImageGalleryResourceGroupName'),'/providers/Microsoft.Compute/galleries/',parameters('sharedImageGalleryName'),'/images/',parameters('SharedImageGalleryImageDefName'),'/versions/',variables('SharedImageGalleryImageVersion')),concat('/subscriptions/',parameters('Subscription'),'/resourceGroups/',parameters('SharedImageGalleryResourceGroupName'),'/providers/Microsoft.Compute/galleries/',parameters('sharedImageGalleryName'),'/images/',parameters('SharedImageGalleryImageDefName')))]",        
+
+        "AzureImageBuilderIdentityID":"[concat('/subscriptions/',parameters('Subscription'),'/resourceGroups/',parameters('AzureImageBuilderIdentityRG'),'/providers/Microsoft.ManagedIdentity/userAssignedIdentities/',parameters('AzureImageBuilderIdentity'))]",
+        "AzureImageBuilderVmSubnetID":"[concat('/subscriptions/',parameters('Subscription'),'/resourceGroups/',parameters('AzureImageBuilderVmVnetResourceGroup'),'/providers/Microsoft.Network/virtualNetworks/',parameters('AzureImageBuilderVmVnetName'),'/subnets/',parameters('AzureImageBuilderVmSubnetName'))]",
+        
+        // Where a value for AzureFilesUNCPath is specififed this builds the command line to map the drive. NOTE: This will include showing credentials in plain text within the Image Builder template
+        "RunImageBuildScript1": "[if(not(empty(parameters('AzureFilesUNCPath'))),concat('$Username = ''',parameters('AzureFilesDriveMapUsername'),'''; $Password = ConvertTo-SecureString -String ''',parameters('AzureFilesDriveMapPassword'),''' -AsPlainText -Force; $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $Username, $Password; New-PSDrive -Name Z -PSProvider FileSystem -Root ''',parameters('AzureFilesUNCPath'),''' -Credential $Credential; Start-Sleep 10; Z:\\',parameters('ImageBuildScript1')),concat('Z:\\',parameters('ImageBuildScript1')))]",
+        "RunImageBuildScript2": "[if(not(empty(parameters('AzureFilesUNCPath'))),concat('$Username = ''',parameters('AzureFilesDriveMapUsername'),'''; $Password = ConvertTo-SecureString -String ''',parameters('AzureFilesDriveMapPassword'),''' -AsPlainText -Force; $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $Username, $Password; New-PSDrive -Name Z -PSProvider FileSystem -Root ''',parameters('AzureFilesUNCPath'),''' -Credential $Credential; Start-Sleep 10; Z:\\',parameters('ImageBuildScript2')),concat('Z:\\',parameters('ImageBuildScript2')))]",
+        
+        // "RunImageBuildScript1":"[concat('$Username = ''',parameters('AzureFilesDriveMapUsername'),'''; $Password = ConvertTo-SecureString -String ''',parameters('AzureFilesDriveMapPassword'),''' -AsPlainText -Force; $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $Username, $Password; New-PSDrive -Name Z -PSProvider FileSystem -Root ''',parameters('AzureFilesUNCPath'),''' -Credential $Credential; Start-Sleep 10; Z:\\',parameters('ImageBuildScript1'))]",
+        // "RunImageBuildScript2":"[concat('$Username = ''',parameters('AzureFilesDriveMapUsername'),'''; $Password = ConvertTo-SecureString -String ''',parameters('AzureFilesDriveMapPassword'),''' -AsPlainText -Force; $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $Username, $Password; New-PSDrive -Name Z -PSProvider FileSystem -Root ''',parameters('AzureFilesUNCPath'),''' -Credential $Credential; Start-Sleep 10; Z:\\',parameters('ImageBuildScript2'))]",
+
+        // Tag Values
+        "BaseOsImg": "[concat(parameters('AzureImageBuilderVmImageOffer'),'-',parameters('AzureImageBuilderVmImageSKU'))]"                     
+    },
+
+    "resources": [
+        {
+            "name": "[parameters('AzureImageBuilderTemplateName')]",
+            "type": "Microsoft.VirtualMachineImages/imageTemplates",
+            "apiVersion": "[parameters('api-version')]",
+            "location": "[parameters('AzureImageBuilderSvcLocation')]",
+            "dependsOn": [],
+            "tags": {
+                "source": "AzureImageBuilder",
+                "baseosimg": "[variables('BaseOsImg')]",
+                "userIdentity": "enabled"
+            },
+            "identity": {
+                "type": "UserAssigned",
+                        "userAssignedIdentities": {
+                            "[variables('AzureImageBuilderIdentityID')]":{}
+                            }
+                },
+        
+            "properties": {
+                "buildTimeoutInMinutes" : "[parameters('AzureImageBuilderVmbuildTimeoutInMinutes')]",
+
+                "vmProfile": {
+                    "vmSize": "[parameters('AzureImageBuilderVmSize')]",
+                    "osDiskSizeGB": "[parameters('AzureImageBuilderVmosDiskSizeGB')]",
+                    // Only add a SubnetID where a SubnetName has been provided. Default to not to use a SubnetID
+                    "[if(not(empty(parameters('AzureImageBuilderVmSubnetName'))),'vnetConfig','')]":
+                        {                       
+                            "subnetId": "[variables('AzureImageBuilderVmSubnetID')]"
+                        }  
+                    },
+        
+            "source": {
+                "type": "PlatformImage",
+                    "publisher": "[parameters('AzureImageBuilderVmImagePublisher')]",
+                    "offer": "[parameters('AzureImageBuilderVmImageOffer')]",                   
+                    "sku": "[parameters('AzureImageBuilderVmImageSKU')]",                    
+                    "version": "latest"        
+            },
+
+            "customize": [
+                    {                   
+                        "type": "PowerShell", 
+                        "name": "ExecuteImageBuildScript1",
+                        "scriptUri": "[parameters('ImageBuildScript1Uri')]",
+                        "runElevated": true                                         
+                    },
+                    {
+                        "type": "WindowsRestart",
+                        "restartCommand": "shutdown /r /f /t 0 /c \"Restart to complete any pending changes from ExecuteImageBuildScript1 execution\"",                        
+                        "restartTimeout": "30m"
+                    },        
+                    {
+                        "type": "WindowsUpdate",
+                        "searchCriteria": "BrowseOnly=0 and IsInstalled=0",
+                        "filters": [
+                            "exclude:$_.Title -match '(Preview|Malicious Software Removal Tool)'",
+                            "include:$true"
+                        ],
+                        "updateLimit": 100
+                    }                                    
+
+                    /*
+                    // In testing the CONDITION is not evalauated
+                    // When creating a template, customise the following steps accordingly leaving only what is required
+
+                    { 
+                        "type": "PowerShell", 
+                        "name": "Add-WindowsOptionalFeatures", 
+                        "inline": [
+                            "Enable-WindowsOptionalFeature -Online -FeatureName \"NetFx3\"" 
+                        ],                        
+                        "runElevated": true
+                        // When Enable-WindowsOptionalFeature commands are included in RunImageBuildScript1 an error is reported.
+                        // Specifying them inline here works as expected.
+                    },              
+                    {
+                        "type": "PowerShell", 
+                        "name": "ExecuteNetworkDriveMapScript",
+                        "scriptUri": "[parameters('ImageBuildScript1Uri')]",
+                        "runElevated": true
+                    },
+                    {
+                        "type": "PowerShell",
+                        "name": "ImageBuildScript1",
+                        "inline": [
+                            "[variables('RunImageBuildScript1')]"                     
+                        ],
+                        "runElevated": true  
+                    },
+                    {
+                        "type": "WindowsRestart",
+                        "restartCommand": "shutdown /r /f /t 0 /c \"Restart to complete any pending changes from MasterImageBuildScript1 execution\"",                        
+                        "restartTimeout": "30m"
+                    },
+                    {                        
+                        "type": "PowerShell",
+                        "name": "ImageBuildScript2",
+                        "inline": [
+                            "[variables('RunImageBuildScript2')]"                     
+                        ],
+                        "runElevated": true  
+                    },
+                    {
+                        "type": "WindowsRestart",
+                        "restartCommand": "shutdown /r /f /t 0 /c \"Restart to complete any pending changes from MasterImageBuildScript2 execution\"",                        
+                        "restartTimeout": "30m"
+                    },                    
+                    { 
+                        "type": "PowerShell", 
+                        "name": "Add-RSAT", 
+                        "inline": [
+                            "Get-WindowsCapability -Name \"Rsat.ActiveDirectory*\" -Online | Add-WindowsCapability -Online",
+                            "Get-WindowsCapability -Name \"Rsat.GroupPolicy.Management.Tools*\" -Online | Add-WindowsCapability -Online",
+                            "Get-WindowsCapability -Name \"Rsat.BitLocker.Recovery.Tools*\" -Online | Add-WindowsCapability -Online"
+                        ],                        
+                        "runElevated": true
+                        // When Add-WindowsCapability -Online commands are included in RunMasterImageBuildScript1 an error is reported.
+                        // Specifying them inline here works as expected.                        
+                    },
+                    {
+                        "type": "WindowsRestart",
+                        "restartCommand": "shutdown /r /f /t 0 /c \"Restart prior to performing a Windows Update\"",
+                        "restartTimeout": "30m"
+                    },                                            
+                    {
+                        "type": "WindowsUpdate",
+                        "searchCriteria": "BrowseOnly=0 and IsInstalled=0",
+                        "filters": [
+                            "exclude:$_.Title -match '(Preview|Malicious Software Removal Tool)'",
+                            "include:$true"
+                        ],
+                        "updateLimit": 100
+                    }          
+                    */                                               
+            ],                            
+            "distribute": [
+                {                                
+                    // Technically with AIB you can distribute to both a Shared Image Gallery and save as a Managed Image at the same time
+                    // However, I have made it perform one or the other based on the parameter DistributeMethod
+
+                    // "type": "SharedImage" OR "ManagedImage"
+                    "type": "[if(equals(parameters('DistributeMethod'),'SharedImage'),'SharedImage','ManagedImage')]",                    
+                    
+                    // "galleryImageId" : "SharedImageGalleryID" OR "imageId" : "ManagedImageId"
+                    "[if(equals(parameters('DistributeMethod'),'SharedImage'),'galleryImageId','imageId')]": "[if(equals(parameters('DistributeMethod'),'SharedImage'),variables('SharedImageGalleryID'),variables('ManagedImageId'))]",
+                    
+                    // "runOutputName": "AzureImageBuilderOutputToSharedImageGallery" OR "AzureImageBuilderOutputToManagedImage"
+                    "runOutputName": "[if(equals(parameters('DistributeMethod'),'SharedImage'),'AzureImageBuilderOutputToSharedImageGallery','AzureImageBuilderOutputToManagedImage')]",
+                    
+                    "location": "[parameters('azureImageBuilderSvcLocation')]",
+                    "artifactTags": {
+                        "source": "AzureImageBuilder",
+                        "baseosimg": "[variables('BaseOsImg')]"
+                        },                        
+                    "replicationRegions": "[parameters('SharedImageGalleryReplicationRegions')]"                                   
+                }   
+                
+                /*
+                // Technically with AIB you can distribute to multiple options. However, I have made it just one based on the parameter DistributeMethod
+                // In testing the CONDITION is not evalauated so the code below results in all 3 distribution methods taking place
+                {
+                    "condition":"[equals(parameters('DistributeMethod'),'ManagedImage')]",                    
+                    "type": "ManagedImage",
+                    "imageId": "[variables('ManagedImageId')]",
+                    "location": "[parameters('azureImageBuilderSvcLocation')]",
+                    "runOutputName": "AzureImageBuilderOutputToManagedImage",
+                    "artifactTags": {
+                        "source": "AzureImageBuilder",
+                        "baseosimg": "[variables('BaseOsImg')]"
+                        }                    
+                },
+                {
+                    "condition":"[equals(parameters('DistributeMethod'),'SharedImage')]",
+                    "type": "SharedImage",
+                    "galleryImageId": "[variables('SharedImageGalleryID')]",
+                    "runOutputName": "AzureImageBuilderOutputToSharedImage",
+                    "artifactTags": {
+                        "source": "AzureImageBuilder",
+                        "baseosimg": "[variables('BaseOsImg')]"
+                        },
+                    "replicationRegions": "[parameters('SharedImageGalleryReplicationRegions')]"
+                },
+                {
+                    "condition":"[equals(parameters('DistributeMethod'),'VHD')]",
+                    "type": "VHD",
+                    "runOutputName": "AzureImageBuilderOutputToVHD",
+                    "artifactTags": {
+                        "source": "AzureImageBuilder",
+                        "baseosimg": "[variables('BaseOsImg')]"
+                        }                    
+                }
+            */
+            ]
+        }
+    }   
+    ],
+
+    "outputs": {
+        "AzureImageBuilderIdentity": {
+            "type": "string",
+            "value": "[variables('AzureImageBuilderIdentityID')]"
+        },
+        "RunImageBuildScript1": {
+            "condition":"[not(empty(parameters('ImageBuildScript1')))]",
+            "type": "string",
+            "value": "[variables('RunImageBuildScript1')]"
+        },
+        "RunImageBuildScript2": {
+            "condition":"[not(empty(parameters('ImageBuildScript2')))]",
+            "type": "string",
+            "value": "[variables('RunImageBuildScript2')]"
+        },        
+        "ManagedImageName": {
+            "condition":"[equals(parameters('DistributeMethod'),'ManagedImage')]",
+            "type": "string",
+            "value": "[variables('ManagedImageName')]"
+        },
+        "ManagedImageId": {
+            "condition":"[equals(parameters('DistributeMethod'),'ManagedImage')]",
+            "type": "string",
+            "value":"[variables('ManagedImageId')]"
+        },        
+        "SharedImageGalleryImageVersion": {
+            "condition":"[bool(parameters('SharedImageGalleryExplicitVersioning'))]",            
+            "type": "string",
+            "value": "[variables('SharedImageGalleryImageVersion')]"
+        },
+        "SharedImageGalleryID": {
+            "condition":"[equals(parameters('DistributeMethod'),'SharedImage')]",
+            "type": "string",
+            "value": "[variables('SharedImageGalleryID')]"
+        },
+        "SharedImageGalleryReplicationRegions": {
+            "condition":"[equals(parameters('DistributeMethod'),'SharedImage')]",
+            "type": "array",
+            "value": "[parameters('SharedImageGalleryReplicationRegions')]"
+        },        
+        "AzureImageBuilderVmSubnetID": {
+            "condition":"[not(empty(parameters('AzureImageBuilderVmSubnetName')))]",
+            "type": "string",
+            "value": "[variables('AzureImageBuilderVmSubnetID')]"
+        }        
+    }
+}    
