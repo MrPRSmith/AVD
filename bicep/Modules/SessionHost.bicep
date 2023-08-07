@@ -5,14 +5,13 @@ Currently supports:
  - Active Directory (AADS) or Azure Active Directory (AAD) Joined
  - Intune MDM enrolment when Session Hosts are AAD Joined
  - Choice of using Availability Zones or Availability Sets (for Host Pools with 200 or less VMs)
-
- Needs Testing:
  - Automatic shutdown of Session Hosts via DevTestLab
- - Custom Script execution - e.g. install SCCM agent, other tooling or app etc.
  - Session Hosts based on Trusted Launch VMs 
 
+ Needs Testing:
+ - Custom Script execution - e.g. install SCCM agent, other tooling or app etc.
+
 To be added:
- - Object Tags
  - Azure Disk Encryption (BitLocker)
  - Diagnostics / Monitoring
  - Boot Diagnostics
@@ -34,7 +33,7 @@ param SessionHostLocation string = resourceGroup().location
 param SessionHostNamePrefix string = 'AVD-HOST-'
 
 @description('The number of Session Host(s) to deploy')
-param SessionHostCount int = 2
+param SessionHostCount int = 1
 
 @description('Initial Session Host number to start from. e,g. 23 = AVD-HOST-23')
 param SessionHostInitialNumber int = 201
@@ -131,11 +130,14 @@ param SessionHostOsDiskDeleteWithSessionHost bool = false
   'Set'
   'Zone'  
 ])
-param SessionHostAvailabilityConfiguration string = 'Zone'
+param SessionHostAvailabilityConfiguration string = 'None'
+
+@description('Specify the Tags to assign to the Session Host. This will be applied to VM, NIC and Disk objects')
+param SessionHostTags object = {}
 
 //Host Pool Parameters
 @description('The AVD Host Pool name against which the Session Host(s) will be registered')
-param HostPoolName string = 'HP01'
+param HostPoolName string
 
 @description('The AVD Registration Token to be used to register the Session Host(s) with the specified Host Pool')
 param HostPoolRegistrationToken string
@@ -303,6 +305,7 @@ resource AvailabilitySet 'Microsoft.Compute/availabilitySets@2023-03-01' = if(Us
 resource Nic 'Microsoft.Network/networkInterfaces@2023-02-01' = [for SessionHostInstance in range(0,SessionHostCount): {
   name: '${NicNamePrefix}${padLeft(SessionHostInstance + SessionHostInitialNumber ,SessionHostNumberPadding,'0')}${NicNameSuffix}'
   location: NicLocation
+  tags: SessionHostTags
   properties: {
     ipConfigurations:[
       {
@@ -323,6 +326,7 @@ resource Nic 'Microsoft.Network/networkInterfaces@2023-02-01' = [for SessionHost
 resource SessionHosts 'Microsoft.Compute/virtualMachines@2023-03-01' = [for SessionHostInstance in range(0,SessionHostCount): {
   name: '${SessionHostNamePrefix}${padLeft(SessionHostInstance + SessionHostInitialNumber, SessionHostNumberPadding,'0')}'
   location: SessionHostLocation
+  tags: SessionHostTags
   identity:{
     type: SessionHostIdentity
   }
