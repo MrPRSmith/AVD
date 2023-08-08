@@ -4,17 +4,19 @@ Currently supports:
  - Using the Azure Market Place, a Compute Gallery or a Managed Image as a Session Host image source 
  - Active Directory (AADS) or Azure Active Directory (AAD) Joined
  - Intune MDM enrolment when Session Hosts are AAD Joined
- - Choice of using Availability Zones or Availability Sets (for Host Pools with 200 or less VMs)
+ - Choice of using Availability Zones or Availability Sets (for Availability Sets the Host Pool must have 200 or less VMs)
  - Automatic shutdown of Session Hosts via DevTestLab
- - Session Hosts based on Trusted Launch VMs 
+ - Session Hosts based on Trusted Launch VMs (Secure Boot and vTPM)
+ - Boot Diagnostics
+ - Azure Disk Encryption (BitLocker)
+ - Diagnostics / Monitoring  
 
- Needs Testing:
+Needs Testing:
  - Custom Script execution - e.g. install SCCM agent, other tooling or app etc.
 
 To be added:
- - Azure Disk Encryption (BitLocker)
- - Diagnostics / Monitoring
- - Boot Diagnostics
+ - Capacity Reservations
+ - Performance NVMe
 
 */
 
@@ -26,7 +28,7 @@ param AvdArtifactsLocation string = 'https://raw.githubusercontent.com/Azure/RDS
 param TimeZone string = 'GMT Standard Time'
 
 // Session Host Parameters
-@description('Resource Group of where to place the Session Host(s)')
+@description('Azure Region of where to place the Session Host(s)')
 param SessionHostLocation string = resourceGroup().location
 
 @description('Session Host name prefix. e.g. AVD-HOST-')
@@ -132,6 +134,9 @@ param SessionHostOsDiskDeleteWithSessionHost bool = false
 ])
 param SessionHostAvailabilityConfiguration string = 'None'
 
+@description('Specify if to enable boot diagnostics for the Session Host. If enabled it will use an automatically managed storage account')
+param SessionHostEnableBootDiagnostics bool = false
+
 @description('Specify the Tags to assign to the Session Host. This will be applied to VM, NIC and Disk objects')
 param SessionHostTags object = {}
 
@@ -233,10 +238,49 @@ param CustomScriptManagedIdentity string = '{}'
 @description('The Custom Script Time Stamp. Change this value to trigger a rerun of the script. Any integer value is acceptable, as long as it is different from the previous value')
 param CustomScriptTimestamp int = 0
 
+// Log Analytics Parameters
+@description('Specify if to enable Diagnostic settings on the Session Host (VM) object')
+param SessionHostDiagnosticsEnable bool = false
+
+@description('Log Analytics Workspace ID for Session Host Diagnostic data logging')
+@secure()
+param SessionHostDiagnosticsLawId string = ''
+
+@description('Log Analytics Workspace Key')
+@secure()
+param SessionHostDiagnosticsLawKey string = ''
+
+// BitLocker (Azure Disk Encryption) Parameters
+@description('Specify if to enable BitLocker Disk Encryption on the Session Host(s)')
+param SessionHostBitLockerEnable bool = false
+
+@description('Specify the BitLocker Key Encryption Algorithm to use. The default is \'RSA-OAEP\'')
+@allowed([
+  'RSA-OAEP'
+  'RSA-OAEP-256'
+  'RSA1_5'
+])
+param SessionHostBitLockerKeyEncryptionAlgorithm string = 'RSA-OAEP'
+
+@description('Specify which disk volumes to encrypt with BitLocker')
+@allowed([
+  'OS'
+  'Data'
+  'All'
+])
+param SessionHostBitLockerVolumesToEncrypt string = 'OS'
+
+@description('URL to the Key Vault for storing BitLocker recovery keys')
+param SessionHostBitLockerKeyVaultURL string = ''
+
+@description('ResourceID of the Key Vault for storing BitLocker recovery keys')
+param SessionHostBitLockerKeyVaultResourceId string = ''
+
 
 ////////////////
 // Variables
 ////////////////
+
 
 // Configure Session Host Join Type
 var SessionHostWindowsADJoin = contains(SessionHostJoinType, 'WindowsAD') // Sets as true or false - AD DS Domain Join
@@ -276,6 +320,7 @@ var TrustedLaunchDisabled = {}
 // Resources
 ////////////////
 
+
 // Existing Resource - Virtual Network
 resource ExistingVnet 'Microsoft.Network/virtualNetworks@2023-02-01' existing = {
   name: VnetName
@@ -288,7 +333,8 @@ resource ExistingSubnet 'Microsoft.Network/virtualNetworks/subnets@2023-02-01' e
   name: SubnetName
 }
 
-// Availability Set - I will need to re-work this logic if there are more than 200 Session Hosts!
+// Availability Set - https://learn.microsoft.com/en-us/azure/templates/microsoft.compute/availabilitysets
+// I will need to re-work this logic if there are more than 200 Session Hosts!
 resource AvailabilitySet 'Microsoft.Compute/availabilitySets@2023-03-01' = if(UseAvailabilitySet) {
   name: AvailabilitySetName
   location: AvailabilitySetLocation 
@@ -301,7 +347,7 @@ resource AvailabilitySet 'Microsoft.Compute/availabilitySets@2023-03-01' = if(Us
   }
 }
 
-// Network Interface(s)
+// Network Interface(s) - https://learn.microsoft.com/en-us/azure/templates/microsoft.network/networkinterfaces
 resource Nic 'Microsoft.Network/networkInterfaces@2023-02-01' = [for SessionHostInstance in range(0,SessionHostCount): {
   name: '${NicNamePrefix}${padLeft(SessionHostInstance + SessionHostInitialNumber ,SessionHostNumberPadding,'0')}${NicNameSuffix}'
   location: NicLocation
@@ -335,6 +381,11 @@ resource SessionHosts 'Microsoft.Compute/virtualMachines@2023-03-01' = [for Sess
       vmSize: SessionHostVmSize
     }
     availabilitySet: UseAvailabilitySet ? AvailabilitySet.id : null
+    diagnosticsProfile:{
+      bootDiagnostics:{
+        enabled: SessionHostEnableBootDiagnostics
+      }
+    }
     osProfile:{
       computerName: '${SessionHostNamePrefix}${padLeft(SessionHostInstance + SessionHostInitialNumber, SessionHostNumberPadding,'0')}'
       adminUsername: adminUsername
@@ -419,7 +470,7 @@ resource AzureADJoin 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' =
 // Register Session Host with AVD - https://learn.microsoft.com/en-us/azure/virtual-machines/extensions/dsc-windows
 resource AzureVirtualDesktopRegistration 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' = [for SessionHostInstance in range(0,SessionHostCount): {
   parent: SessionHosts[SessionHostInstance]
-  name: 'AVDRegistration'
+  name: 'AvdRegistration'
   location: SessionHostLocation
   properties: {
     publisher: 'Microsoft.Powershell'
@@ -485,6 +536,50 @@ resource CustomScript 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' 
       storageAccountName: CustomScriptStorageAccountName
       storageAccountKey: CustomScriptStorageAccountKey
       managedIdentity: CustomScriptManagedIdentity
+    }
+  }
+}]
+
+
+// Enable Session Host Monitoring via Log Analytics Agent - https://learn.microsoft.com/en-gb/azure/azure-monitor/agents/log-analytics-agent
+// NOTE: The legacy Log Analytics agent will be deprecated by August 2024.
+resource SessionHostInsights 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' = [for SessionHostInstance in range(0, SessionHostCount): if (SessionHostDiagnosticsEnable) {
+  parent: SessionHosts[SessionHostInstance]
+  name: 'LogAnalyticsAgent'
+  location: SessionHostLocation
+  properties: {
+    publisher: 'Microsoft.EnterpriseCloud.Monitoring'
+    type: 'MicrosoftMonitoringAgent'
+    typeHandlerVersion: '1.0'
+    autoUpgradeMinorVersion: true
+    settings: {
+      workspaceId: SessionHostDiagnosticsLawId
+    }    
+    protectedSettings: {
+      workspaceKey: SessionHostDiagnosticsLawKey
+    }
+  }
+}]
+
+// Enable Azure Disk Encryption (BitLocker) - https://learn.microsoft.com/en-us/azure/virtual-machines/extensions/azure-disk-enc-windows
+resource SessionHostBitLocker 'Microsoft.Compute/virtualMachines/extensions@2023-03-01' = [for SessionHostInstance in range(0, SessionHostCount): if (SessionHostBitLockerEnable) {
+  parent: SessionHosts[SessionHostInstance]
+  name: 'BitLocker'
+  location: SessionHostLocation
+  properties:{
+    publisher: 'Microsoft.Azure.Security'
+    type: 'AzureDiskEncryption'
+    typeHandlerVersion: '2.2'
+    autoUpgradeMinorVersion: true
+    settings: {
+      EncryptionOperation: 'EnableEncryption'
+      KeyEncryptionAlgorithm: SessionHostBitLockerKeyEncryptionAlgorithm
+      KeyVaultURL: SessionHostBitLockerKeyVaultURL
+      KeyVaultResourceId: SessionHostBitLockerKeyVaultResourceId
+      //KeyEncryptionKeyURL: ''
+      //KekVaultResourceId: ''
+      //SequenceVersion: ''
+      VolumeType: SessionHostBitLockerVolumesToEncrypt
     }
   }
 }]
