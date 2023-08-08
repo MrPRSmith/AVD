@@ -56,6 +56,15 @@ param HostPoolLoadAppGroupType string = 'Desktop'
 @description('Resource tags to assign to the Host Pool object')
 param HostPoolTags object = {}
 
+@description('Specify if the Host Pool is a \'validation\' Host Pool')
+param HostPoolIsValidationEnvironment bool = false
+
+@description('Specify if VMs in the Host Pool should \'Start On Connect\' or not')
+param HostPoolStartVmOnConnect bool = false
+
+@description('Specify a Custom RDP propertly configuration')
+param HostPoolCustomRdpProperty string = ''
+
 // Host Pool Diagnostic Parameters
 @description('Specify if to enable Diagnostic settings on the Host Pool object')
 param HostPoolDiagnosticsEnable bool = false
@@ -67,6 +76,7 @@ param HostPoolLogAnalyticsWorkspaceId string = ''
 ////////////////
 // Resources
 ////////////////
+
 
 // Host Pool - https://learn.microsoft.com/en-us/azure/templates/microsoft.desktopvirtualization/hostpools
 resource AvdHostPool 'Microsoft.DesktopVirtualization/hostPools@2022-10-14-preview' = {
@@ -80,13 +90,13 @@ resource AvdHostPool 'Microsoft.DesktopVirtualization/hostPools@2022-10-14-previ
     description: HostPoolDescription
     friendlyName: HostPoolFriendlyName
     maxSessionLimit: HostPoolMaxSessionLimit
-    validationEnvironment: false
-    startVMOnConnect: false
+    validationEnvironment: HostPoolIsValidationEnvironment
+    startVMOnConnect: HostPoolStartVmOnConnect
     registrationInfo: {
       registrationTokenOperation: 'Update'
       expirationTime: HostPoolTokenExpirationTime
     }
-    
+    customRdpProperty: HostPoolCustomRdpProperty
   }
 }
 
@@ -189,6 +199,7 @@ resource AvdHostPoolDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-0
 ////////////////
 // Outputs
 ////////////////
+
 
 // output HostPoolRegistrationToken string = AVDHostPool.properties.registrationInfo.token
 output HostPoolRegistrationToken string = reference(AvdHostPool.id, '2021-01-14-preview').registrationInfo.token
