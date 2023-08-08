@@ -3,10 +3,10 @@
 
 */
 
-@description('Name of the Application Group resource')
+@description('Name of the Application Group object')
 param ApplicationGroupName string
 
-@description('Name of the Application Group resource')
+@description('Azure Region of where to place the Application Group object')
 param ApplicationGroupLocation string
 
 @description('Application Group tags')
